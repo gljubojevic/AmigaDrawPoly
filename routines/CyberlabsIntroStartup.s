@@ -2,10 +2,10 @@
 ;Cyberlabs intro startup code for system friendly intros
 ;Copy code below to beginning of intro code and uncoment it
 ;Customize to and use it
-;NOTE: Remember to set section after including startup routine
-;to be able to place code after startup because chip section defined
-;in this file for Dummy_Copper
+;NOTE: Remember to include CyberlabsIntroStartupCopper.s
 ;*************************************************************************
+;	Section	"Intro",CODE_F
+;
 ;	INCDIR	"Include:"
 ;	INCLUDE	"LVO3.1/exec_lib.i"
 ;	INCLUDE	"LVO3.1/dos_lib.i"
@@ -210,7 +210,7 @@ RR_ERROR_No_DOS_Open:
 	ENDIF
 
 	IF	DEBUGING=0
-	tst.l	WBMessage(pc)
+	tst.l	WBMessage
 	beq.s	RR_Not_Started_From_WB
 	CALLEXEC	Forbid
 	move.l	WBMessage(pc),a1
@@ -299,6 +299,8 @@ VTBInt_Name:	dc.b	"Cyberlabs VerticalBlank Interrupt",0
 
 ;***************************************************
 ;Input handler routines
+;TODO: Fix this code doesn't look good for
+;unchaining different types of events
 ;***************************************************
 	IF	INPUTHANDLER=1
 
@@ -372,16 +374,19 @@ Input_Handler: 				; A0-InputEvent, A1-Data Area
 	movem.l	d1/a0-a3,-(sp)
 	sub.l	a2,a2
 	move.l	a0,a1
+InpCheck:
 	move.b	ie_Class(A1),d0 	; ie_Class
 	cmp.b	#IECLASS_RAWKEY,d0    	; RAWKEY
 	beq.s	InpRawkey
 	cmp.b	#IECLASS_RAWMOUSE,d0  	; RAWMOUSE
 	beq.s	InpRawmouse
 	move.l	a1,a2
-InpNext	move.l	(a1),a1
+InpNext:
+	move.l	(a1),a1
 	move.l	a1,d0
-	bne.w	InputHandler
-inphend	move.l	a0,d0
+	bne.w	InpCheck
+inphend:
+	move.l	a0,d0
 	movem.l	(sp)+,d1/a0-a3
 	rts
 
@@ -585,26 +590,3 @@ Write_DoubleCopperWait:
 WDCW_NotOverFF:
 	move.l	(sp)+,d1
 	rts
-
-
-;***************************************************
-;Chip Data
-;***************************************************
-
-	SECTION	"Startup Chip Data",DATA_C
-
-	CNOP	0,8
-
-Dummy_Copper:
-	dc.w	$01fc,$0000
-	dc.w	$0100,$0000			;BPLCON0
-	dc.w	$0102,$0000			;BPLCON1
-	dc.w	$0104,$0000			;BPLCON2
-	dc.w	$0106,$0000			;BPLCON3
-	dc.w	$010c,$0000			;BPLCON4
-	dc.w	$0180,$0000
-	IF	COPPERINT=1
-	dc.w	$009c,$8010			;INTREQ
-	ENDIF
-	dc.w	$ffff,$fffe			;End of Copper List
-	dc.w	$ffff,$fffe			;End of Copper List

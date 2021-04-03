@@ -27,7 +27,7 @@
                 "--hard_drive_0=${workspaceFolder}/uae/dh0",
                 "--joystick_port_1=none",
                 "--amiga_model=A1200",
-                "--slow_memory=2048",
+                "--fast_memory=2048",
                 "--remote_debugger=200",
                 "--use_remote_debugger=true",
                 "--automatic_input_grab=0",

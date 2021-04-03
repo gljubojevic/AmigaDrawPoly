@@ -1,3 +1,5 @@
+	SECTION	"Intro",CODE_F
+
 	INCDIR	"Include"
 	INCLUDE	"LVO3.1/exec_lib.i"
 	INCLUDE	"LVO3.1/dos_lib.i"
@@ -22,7 +24,7 @@ COPPERINT		=	1	;use 1 if Copper int othervise is vertb int
 INPUTHANDLER	=	0	;use 1 if using input handler
 DOSLIB			=	0	;use 1 if dos library is needed
 
-Intro:	
+Intro:
 	movem.l	d0-a6,-(sp)
 	lea	$dff000,a6			;Custom Chip Address in a6
 
@@ -81,7 +83,6 @@ VTBInt_End:
 ;***************************************************
 ;Intro routines
 ;***************************************************
-	Section	"Intro Routines",CODE_F
 
 ; 3D Screen dimensions
 Scr3D_Width		= 320
@@ -132,14 +133,15 @@ VideoColors:
 ;***************************************************
 ;Fast Data
 ;***************************************************
-	Section	"Intro data",DATA_F
+	SECTION	"Intro data",DATA_F
 	INCLUDE "routines/CubeTriangle.s"
 
 ;***************************************************
 ;Chip Data
 ;***************************************************
-
 	SECTION	"Chip Data",DATA_C
+
+	INCLUDE "routines/CyberlabsIntroStartupCopper.s"
 
 	CNOP	0,8
 Copper:
@@ -179,8 +181,7 @@ Copper_Col:
 ;***************************************************
 ;Chip BSS Data
 ;***************************************************
-
-	Section	"Chip BSS Data",BSS_C
+	SECTION	"Chip BSS Data",BSS_C
 
 	CNOP	0,8
 VideoMem01:	ds.b	Scr3D_VideoMem
