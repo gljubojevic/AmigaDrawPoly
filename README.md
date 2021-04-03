@@ -3,7 +3,7 @@ Draw triangle using CPU on A500 ECS
 
 Setup project use script to get all tools.
 ```shell
-$ ./prepare.sh
+$ ./get_osx_tools.sh
 ```
 
 Clean project before commit
