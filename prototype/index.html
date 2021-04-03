@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Draw Poly test</title>
+    <script type="text/javascript" src="mc68000fake.js"></script>
+    <script type="text/javascript">
+		//var fixPoint = 16;	// fix point precision
+		var fixPoint = 12;		// fix point precision (looks like it is enough)
+
+		// draw triangle
+		// D0, D1	x1,y1
+		// D2, D3	x2,y2
+		// D4, D5	x3,y3
+		// D6		color index
+		function drawTriangle(ctx, img, D0, D1, D2, D3, D4, D5, D6) {
+			var D9;		// TODO: optimize regs
+			var color = D6;
+
+			// sort cords by Y
+			if (D1 > D3) {
+				[D0, D2] = exg(D0, D2);
+				[D1, D3] = exg(D1, D3);
+			}
+
+			if (D1 > D5) {
+				[D0, D4] = exg(D0, D4);
+				[D1, D5] = exg(D1, D5);
+			}
+
+			if (D3 > D5) {
+				[D2, D4] = exg(D2, D4);
+				[D3, D5] = exg(D3, D5);
+			}
+
+			// TODO: Polygon Clipping
+
+			// longest line height
+			D6 = D5 - D1;				// y3-y1
+			if (0 == D6) {				// exit size of triangle is 0
+				return;
+			}
+
+			// all X cordinates shift for fixpoint
+			D0 = D0 << fixPoint;
+			D2 = D2 << fixPoint;
+			D4 = D4 << fixPoint;
+
+			// longest line line delta
+			D7 = D4 - D0;				// x3-x1
+			D7 = Math.floor(D7 / D6);	// (x3-x1) / (y3-y1)
+
+			// first short line height
+			D6 = D3 - D1;					// y2-y1
+			if (0 < D6) {
+				// first short line delta
+				D9 = D2 - D0;				// (x2-x1)
+				D9 = Math.floor(D9 / D6);	// (x2-x1) / (y2-y1)
+				// loop for first short line
+				D6 = D0;
+				while (D1 < D3) {
+					hlineDirect(img, color, D1, D0, D6);
+					D0 += D7;
+					D6 += D9;
+					D1++;
+				}
+			}
+
+			if (D1 == D5) {	// exit last line is horizintal and drawn
+				return;
+			}
+
+			// second short line delta
+			D6 = D5 - D3;				// y3-y2
+			D4 = D4 - D2;				// x3-x2
+			D4 = Math.floor(D4 / D6);	// (x3-x2) / (y3-y2)
+			// loop for second short line
+			while (D1 < D5) {
+				hlineDirect(img, color, D1, D0, D2);
+				D0 += D7;
+				D2 += D4;
+				D1++;
+			}
+		}
+
+		// draw triangle bootom to top
+		// D0, D1	x1,y1
+		// D2, D3	x2,y2
+		// D4, D5	x3,y3
+		// D6		color index
+		function drawTriangleBottomToTop(ctx, img, D0, D1, D2, D3, D4, D5, D6) {
+
+			// sort cords by Y bottom to top
+			if (D1 < D3) {
+				[D0, D2] = exg(D0, D2);
+				[D1, D3] = exg(D1, D3);
+			}
+
+			if (D1 < D5) {
+				[D0, D4] = exg(D0, D4);
+				[D1, D5] = exg(D1, D5);
+			}
+
+			if (D3 < D5) {
+				[D2, D4] = exg(D2, D4);
+				[D3, D5] = exg(D3, D5);
+			}
+
+        }
+
+		function exg(v1, v2) {
+			return [v2, v1];
+		}
+
+		// TODO: non overlaping triangle rendering
+		// You also need the arithmetic-certainty of fixed-point integer math instead of the rounding errors of floating point math. 
+		// - The left end of each rasterized scanline starts at first pixel greater or equal to the starting scan value. 
+		// - The right end of the rasterized scanline ends on the one before the first pixel strictly less than the end scan value.
+		function hlineDirect(img, color, y, x1, x2){
+			x1 = x1 >> fixPoint;
+			x2 = x2 >> fixPoint;
+			// dont draw right edge
+			if (x1 == x2)	{return;}
+			if (x1 > x2) {
+				[x1,x2] = exg(x1, x2);
+			}
+			x2--;	// dont draw right edge
+
+			// color
+			b = color & 0xff;
+			g = (color >> 8) & 0xff;
+			r = (color >> 16) & 0xff;
+
+			y = yTable[y];
+			x1 = (x1 << 2) + y;
+			x2 = (x2 << 2) + y;
+
+			// overlap check
+			o1 = x1;
+			c1 = img.data[o1];
+			c1 |= img.data[o1+1];
+			c1 |= img.data[o1+2];
+
+			o2 = x2;
+			c2 = img.data[o2];
+			c2 |= img.data[o2+1];
+			c2 |= img.data[o2+2];
+
+			if (c1 > 0) {
+				console.log(
+					"Start Draw color:", r, g, b, 
+					"Read color",
+					img.data[o1],
+					img.data[o1+1],
+					img.data[o1+2],
+					"from",o1, "to", o2
+				);
+			}
+
+			if (c2 > 0) {
+				console.log(
+					"End Draw color:", r, g, b, 
+					"Read color",
+					img.data[o2],
+					img.data[o2+1],
+					img.data[o2+2],
+					"from",o1, "to", o2
+				);
+			}
+
+			// fill line
+			while (x1 <= x2) {
+				img.data[x1++] = r;
+				img.data[x1++] = g;
+				img.data[x1++] = b;
+				img.data[x1++] = 255;
+			}
+
+			// draw overlap
+			if (c1 > 0) {
+				img.data[o1++] = 255;
+				img.data[o1++] = 255;
+				img.data[o1++] = 255;
+				overPx++;
+			}
+			if (c2 > 0) {
+				img.data[o2++] = 255;
+				img.data[o2++] = 255;
+				img.data[o2++] = 255;
+				overPx++;
+			}
+		}
+
+
+		function rotateXYZ(cords, pos, ang) {
+			var rot = new Array(cords.length);
+
+			var sinAlpha = Math.sin(ang[0]);
+			var cosAlpha = Math.cos(ang[0]);
+
+			var sinBeta = Math.sin(ang[1]);
+			var cosBeta = Math.cos(ang[1]);
+
+			var sinGama = Math.sin(ang[2]);
+			var cosGama = Math.cos(ang[2]);
+
+			for (let i = 0; i < cords.length; i+=3) {
+
+				var x = cords[i];
+				var y = cords[i+1];
+				var z = cords[i+2];
+
+				// rotate X
+				yy = y;
+				zz = z;
+				y = cosAlpha * yy - sinAlpha * zz;
+				z = sinAlpha * yy + cosAlpha * zz;
+
+				// rotate Y
+				xx = x;
+				zz = z;
+				x = cosBeta * xx - sinBeta * zz;
+				z = sinBeta * xx + cosBeta * zz;
+				
+				// rotate Z
+				xx = x;
+				yy = y;
+				x = cosGama * xx - sinGama * yy;
+				y = sinGama * xx + cosGama * yy;
+
+				// position
+				x += pos[0];
+				y += pos[1];
+				z += pos[2];
+
+				// persp
+				p = d / z;
+				x = p * x + centerX;
+				y = p * y + centerY;
+
+				// store
+				rot[i] = Math.floor(x);
+				rot[i+1] = Math.floor(y);
+				rot[i+2] = Math.floor(z);
+			}
+
+			return rot;
+		}
+
+		var cube = {
+			ang: [0,0,0],			// alpha, beta, gama
+			pos: [0, 0, 1000],		// x,y,z	position
+			vertex: [				// x,y,z
+				-200, -200, -200,	// 0
+				200, -200, -200,	// 1
+				200, 200, -200,		// 2
+				-200, 200, -200,	// 3
+				-200, -200, 200,	// 4
+				200, -200, 200,		// 5
+				200, 200, 200,		// 6
+				-200, 200, 200		// 7
+			],
+			faces: [				// vertex0, vertex1, vertex2, color
+				0*3,1*3,2*3,	0,	// front
+				0*3,2*3,3*3,	1,
+				0*3,4*3,1*3,	2,	// top
+				4*3,5*3,1*3,	3,
+				3*3,2*3,7*3,	4,	// bottom
+				6*3,7*3,2*3,	5,
+				5*3,4*3,6*3,	6,	// back
+				7*3,6*3,4*3,	7,
+				4*3,0*3,7*3,	8,	// left
+				3*3,7*3,0*3,	9,
+				1*3,5*3,6*3,	10,	// right
+				1*3,6*3,2*3,	11,
+			]
+		};
+
+		// triangle visible
+		// D0, D1	x1,y1
+		// D2, D3	x2,y2
+		// D4, D5	x3,y3
+		// Visible:
+		// (x2-x1) * (y3-y1) - (x3-x1) * (y2-y1) > 0
+		function isVisible(D0, D1, D2, D3, D4, D5) {
+			var v1x = D2 - D0;	// (x2-x1)
+			var v1y = D3 - D1;	// (y2-y1)
+			var v2x = D4 - D0;	// (x3-x1)
+			var v2y = D5 - D1;	// (y3-y1)
+			var nz = v1x * v2y - v2x * v1y;
+			return nz > 0;
+		}
+
+		function draw3D(ctx, img, obj) {
+			var vtx = rotateXYZ(obj.vertex, obj.pos, obj.ang);
+
+			overPx = 0;	// reset overlap pixels
+
+			// draw polys
+			for (var i = 0; i < obj.faces.length; i+=4) {
+
+				// drawing triangle
+				polyIdx = i >> 2;
+
+				// face vertex index multipled by 3
+				// for easier accest vertex
+				var v0 = obj.faces[i+0];
+				var v1 = obj.faces[i+1];
+				var v2 = obj.faces[i+2];
+				var col = obj.faces[i+3];
+
+				// check poligon visible
+				var visible = isVisible(
+					vtx[v0], vtx[v0+1],
+					vtx[v1], vtx[v1+1],
+					vtx[v2], vtx[v2+1],
+				)
+				if (!visible) {
+					continue;
+				}
+
+				// color
+				col = getColor(col);	// color for direct draw
+
+				// draw polygon
+				drawTriangle(
+					ctx, img,
+					vtx[v0], vtx[v0+1],
+					vtx[v1], vtx[v1+1],
+					vtx[v2], vtx[v2+1],
+					col
+				);
+			}
+
+			if (overPx > 0) {
+				console.log("Overlap pixels", overPx, polyIdx);
+			}
+		}
+
+		var colorTableFull = [
+			0xff0000, 0x880000,
+			0x00ff00, 0x008800,
+			0x0000ff, 0x000088,
+			0xfff000, 0x888800,
+			0xff00ff, 0x880088,
+			0x00ffff, 0x008888,
+		];
+
+		function getColor(color) {
+			if (color >= colorTableFull.length) {
+				return 0xffffff;
+			}
+			return colorTableFull[color];
+		}
+
+		function clearImageData(img) {
+			var px = (img.width << 2) * img.height;
+			for (let i = 0; i < px; i+=4) {
+				img.data[i+0] = 0;		// R
+				img.data[i+1] = 0;		// G
+				img.data[i+2] = 0;		// B
+				img.data[i+3] = 255;	// A
+			}
+		}
+
+		function createYTable(width, height) {
+			var yTab = new Array(height);
+			var rowSize = width << 2;	// Px RGBA
+			var offset = 0;
+			for (var i = 0; i < height; i++) {
+				yTab[i] = offset;
+				offset += rowSize;
+			}
+			return yTab;
+		}
+
+		var ctx2;		// canvas context
+		var imgData;	// image data
+
+		var scrWidth;	// screen width
+		var scrHeight;	// screen height
+		var centerX;	// screen center X
+		var centerY;	// screen center Y
+
+		var d = 256;	// projection plane position
+
+		var yTable;		// y table for buffer
+
+		var frame = 0;	// current frame number
+		var overPx = 0;	// number overlapped pixels
+		var polyIdx = 0	// current drawing polygon
+
+		function run(timestamp) {
+			clearImageData(imgData);
+
+			draw3D(ctx2, imgData, cube);
+
+			// stop drawing when overlap
+			//if (0 == overPx) {
+				cube.ang[0] += Math.PI / 640;	// alpha
+				cube.ang[1] += Math.PI / 640;	// beta
+				cube.ang[2] += Math.PI / 640;	// gama
+			//}
+
+			frame++;
+			ctx2.putImageData(imgData, 0, 0);	// show image data
+			window.requestAnimationFrame(run);
+		}
+
+		function start() {
+			ctx2 = document.getElementById("canwasShow").getContext("2d");
+			ctx2.fillStyle = '#000';
+			ctx2.lineWidth = 1;
+			ctx2.strokeStyle = '#fff';
+
+			// image data for direct drawing
+			scrWidth = ctx2.canvas.width;
+			scrHeight = ctx2.canvas.height;
+			centerX = scrWidth >> 1;
+			centerY = scrHeight >> 1;
+			imgData = ctx2.createImageData(scrWidth, scrHeight);
+
+			// tales
+			yTable = createYTable(scrWidth, scrHeight);
+
+			window.requestAnimationFrame(run);
+		}
+	</script>
+</head>
+<body onload="start();">
+	<canvas id="canwasShow" width="320" height="256" style="border:solid 1px red;width:640px;height:512px;"></canvas>
+	<p>
+		<a href="https://amycoders.org/" target="blank">https://amycoders.org/</a>
+	</p>
+</body>
+</html>
