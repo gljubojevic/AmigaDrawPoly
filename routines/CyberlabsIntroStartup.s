@@ -17,6 +17,7 @@
 ;	INCLUDE	"exec/execbase.i"
 ;	INCLUDE	"dos/dos.i"
 ;	INCLUDE	"hardware/intbits.i"	
+;	INCLUDE	"hardware/dmabits.i"
 ;	INCLUDE	"hardware/cia.i"
 ;	INCLUDE	"libraries/dosextens.i"
 ;	INCLUDE	"devices/input.i"
@@ -29,6 +30,7 @@
 ;COPPERINT	=	1	;use 1 if Copper int othervise is vertb int
 ;INPUTHANDLER	=	0	;use 1 if using input handler
 ;DOSLIB		=	0	;use 1 if dos library is needed
+;DMA_ACTIVATE	= 	(DMAF_SETCLR|DMAF_SPRITE|DMAF_RASTER|DMAF_COPPER)
 ;
 ;Intro:	
 ;	movem.l	d0-a6,-(sp)
@@ -398,12 +400,14 @@ InpRawkey:
 
 InpRawmouse:
 	bsr	InpUnchain
-	move.w	MarkerX,d0
-	move.w	MarkerY,d1
-	add.w	10(a1),d0
-	add.w	12(a1),d1
-	move.w	d0,MarkerX
-	move.w	d1,MarkerY
+;	move.w	MarkerX,d0
+;	move.w	MarkerY,d1
+;	add.w	10(a1),d0
+;	add.w	12(a1),d1
+;	move.w	d0,MarkerX
+;	move.w	d1,MarkerY
+	add.w	10(a1),MarkerX(pc)
+	add.w	12(a1),MarkerY(pc)
 	bra	InpNext
 
 InpUnchain:
@@ -501,13 +505,13 @@ F5Key:		dc.b	0
 ;***************************************************
 
 Wait_VerticalBlank:
-	movem.l	d1/a6,-(sp)
+	movem.l	d1,-(sp)
 WVB_WaitLoop:
 	move.l	$0004(a6),d1
 	and.l	#$0001ff00,d1
 	cmp.l	#$00013800,d1		;$00013800 last vertical position !!
 	bne.s	WVB_WaitLoop
-	movem.l	(sp)+,d1/a6
+	movem.l	(sp)+,d1
 	rts
 
 Wait_Blitter:

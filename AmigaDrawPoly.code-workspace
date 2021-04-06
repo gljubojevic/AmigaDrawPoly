@@ -23,7 +23,8 @@
 			"exefilename": "../uae/dh0/DrawPoly",
 			"options": [
 				"-bamigahunk",
-				"-Bstatic"
+				"-Bstatic",
+				"-M"
 			]
 		},
 		"amiga-assembly.adfgenerator": {

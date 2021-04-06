@@ -10,7 +10,8 @@
 	INCLUDE	"exec/exec.i"
 	INCLUDE	"exec/execbase.i"
 	INCLUDE	"dos/dos.i"
-	INCLUDE	"hardware/intbits.i"	
+	INCLUDE	"hardware/intbits.i"
+	INCLUDE	"hardware/dmabits.i"
 	INCLUDE	"hardware/cia.i"
 	INCLUDE	"libraries/dosextens.i"
 	INCLUDE	"devices/input.i"
@@ -23,6 +24,7 @@ DEBUGING		=	1	;use 1 if debuging
 COPPERINT		=	1	;use 1 if Copper int othervise is vertb int
 INPUTHANDLER	=	0	;use 1 if using input handler
 DOSLIB			=	0	;use 1 if dos library is needed
+DMA_ACTIVATE	= 	(DMAF_SETCLR|DMAF_SPRITE|DMAF_RASTER|DMAF_COPPER)
 
 Intro:
 	movem.l	d0-a6,-(sp)
@@ -42,6 +44,7 @@ Intro_Init:
 	move.l	#Copper,$080(a6)	; set copper
 	bsr		Wait_VerticalBlank
 	bsr		Wait_VerticalBlank
+	move.w	#DMA_ACTIVATE,$0096(a6)	;Enable DMA
 
 	move.w	#0,VTBInt_Stop		; Start Interrupt
 Intro_MainLoop:
@@ -70,8 +73,18 @@ VTBInt_Handler:
 	lea		$dff000,a6
 
 ;***********************************
-;TODO: interrupt code here
+; interrupt code here
 ;***********************************
+	move.w	#$0000,$180(a6)	; Mark start
+
+	move.l	VideoMem(pc),a0
+	lea	Video_YTable,a1
+;	lea	CubeTriangle,a2
+	lea	Triangle,a2
+	bsr.w	DrawObject
+	bsr.w	Video_swap
+
+	move.w	#$0000,$180(a6)	; Mark end
 
 VTBInt_End:
 	movem.l	(sp)+,d0-a6
@@ -94,14 +107,22 @@ Scr3D_VideoMem	= Scr3D_WBytes*Scr3D_Height*Scr3D_Bitmaps
 Video_Init:
 	movem.l	d0-d2/a0-a1,-(sp)
 
-    lea 	VideoMem,a0
+    lea 	VideoMem(pc),a0
     move.l 	#VideoMem01,$0(a0)
     move.l 	#VideoMem02,$4(a0)
 
 	moveq.l	#1<<Scr3D_Bitmaps-1,d0
 	lea		Copper_Col,a0
-	lea		VideoColors,a1
+	lea		VideoColors(pc),a1
 	bsr		Write_CopperListColors
+
+	lea		Video_YTable,a0
+	moveq	#0,d0
+	move.l	#Scr3D_Height-1,d1
+VI_NextYOffset:
+	move.w	d0,(a0)+
+	add.w	#Scr3D_WBytes*Scr3D_Bitmaps,d0
+	dbf		d1,VI_NextYOffset
 
 	movem.l	(sp)+,d0-d2/a0-a1
     rts
@@ -109,7 +130,7 @@ Video_Init:
 Video_swap:	
 	movem.l	d0-d2/a0,-(sp)
 
-    lea		VideoMem,a0
+    lea		VideoMem(pc),a0
 	move.l	$0000(a0),d0			;draw buffer for show
 	move.l	$0004(a0),$0000(a0)		;set new draw buffer
 	move.l	d0,$0004(a0)			;set current show buffer
@@ -128,13 +149,197 @@ VideoMem:
     dc.l    0   ; show buffer
 
 VideoColors:
-	dc.w	$0f00,$0005,$0006,$0007
+	dc.w	$0000,$0fff,$0006,$0007
+
+; Draw 3D object after transformation on screen
+; a0 - Video memory
+; a1 - YTable offsets
+; a2 - Object pointer
+DrawObject:
+	movem.l d0-a6,-(sp)
+	move.l	20(a2),a3	; pointer to triangles
+	move.l	16(a2),a2	; ponter to rotated vertex
+DO_NextTriangle:
+	move.w	(a3)+,d3	; d3 - color
+	bmi.s	DO_Done		; no more triangles
+	movem.w	(a3)+,d0-d2	; vextex pointers
+	move.l	(a2,d0.w),d0	; d0 X0,Y0
+	move.l	(a2,d1.w),d1	; d1 X1,Y1
+	move.l	(a2,d2.w),d2	; d2 X2,Y2
+	; TODO: Check visible
+	bsr.s	DrawTriangle
+	bra.s	DO_NextTriangle
+DO_Done:
+	movem.l (sp)+,d0-a6
+	rts
+
+; Draw triangle to video memory, draws top to bottom
+; d0 - X0,Y0
+; d1 - X1,Y1
+; d2 - X2,Y2
+; d3 - color
+; a0 - Video memory
+; a1 - YTable offsets
+DT_FixPoint=6	;interpolation precision
+;
+DrawTriangle:
+	cmp.w	d1,d0	;Y1 < Y0
+	ble.s	DT_Sort1
+	exg.l	d1,d0
+DT_Sort1:
+	cmp.w	d2,d0	;Y2 < Y0
+	ble.s	DT_Sort2
+	exg.l	d2,d0
+DT_Sort2:
+	cmp.w	d2,d1	;Y2 < Y1
+	ble.s	DT_Sorted
+	exg.l	d2,d1
+DT_Sorted:
+	move.w	d2,d5
+	sub.w	d0,d5	;Y2-Y0
+	beq.s	DT_Done	;trinagle is 0 size
+
+	move.w	d1,d6
+	sub.w	d0,d6	;Y1-Y0
+
+	move.w	d2,d7
+	sub.w	d1,d7	;Y2-Y1
+
+	move.w	d0,d4	;Y0
+	add.w	d4,d4
+	move.w	(a1,d4.w),d4	;Y0 offset in video moemory
+	lea		(a0,d4.w),a4	;a4 - Video memory at Y0
+
+	swap	d0	;X0
+	swap	d1	;X1
+	swap	d2	;X2
+
+	sub.w	d0,d2	;X2-X0
+	ext.l	d2
+	asl.l	#DT_FixPoint,d2
+	divs	d5,d2
+	ext.l	d2	;(X2-X0) / (Y2-Y0)
+
+	sub.w	d0,d1	;X1-X0
+	ext.l	d1
+	asl.l	#DT_FixPoint,d1
+	divs	d6,d1
+	ext.l	d1	;(X1-X0) / (Y1-Y0)
+
+	ext.l	d0
+	asl.l	#DT_FixPoint,d0
+	move.l	d0,d5
+DT_FirstTriangle:
+	bsr.s	DT_HorizontalLine
+	add.l	d2,d0
+	add.l	d1,d5
+	lea		Scr3D_WBytes*Scr3D_Bitmaps(a4),a4
+	dbf		d6,DT_FirstTriangle
+
+DT_Done;
+	rts
+
+; d0 X1
+; d5 X2
+; d3 - color
+; a4 - Video memory Y cord
+DT_HorizontalLine:
+	movem.l d0/d4-d7,-(sp)
+	asr.l	#DT_FixPoint,d0
+	asr.l	#DT_FixPoint,d5
+	cmp.l	d0,d5
+	beq.s	DTHL_Done
+	bgt.s	DTHL_OrderOk
+	exg.l	d0,d5
+DTHL_OrderOk:
+	moveq	#$0f,d4
+
+	move.l	d0,d6
+	and.l	d4,d6
+	add.w	d6,d6
+	move.w	DTHL_MaskLeft(pc,d6.w),d6
+	asr.l	#4,d0
+	add.l	d0,d0
+
+	move.l	d5,d7
+	and.l	d4,d7
+	add.w	d7,d7
+	move.w	DTHL_MaskRight(pc,d7.w),d7
+	asr.l	#4,d5
+	add.l	d5,d5
+
+	cmp.l	d0,d5
+	bne.s	DTHL_NotSameWord
+	eor.w	d6,d7
+	not.w	d7
+	or.w	d7,(a4,d0.w)
+	;TODO: Colors
+	bra.s	DTHL_Done
+
+DTHL_NotSameWord:
+	or.w	d6,(a4,d0.w)
+	or.w	d7,(a4,d5.w)
+	;TODO: Colors
+	subq	#2,d5
+	cmp.w	d0,d5
+	beq.s	DTHL_Done
+	move.w	#$ffff,d4
+DTHL_NextWord:
+	addq.w	#2,d0
+	or.w	d4,(a4,d0.w)
+	;TODO: Colors
+	cmp.w	d5,d0
+	blt.s	DTHL_NextWord
+
+DTHL_Done:
+	movem.l (sp)+,d0/d4-d7
+	rts
+
+DTHL_MaskLeft:
+	dc.w	%1111111111111111	;0
+	dc.w	%0111111111111111	;1
+	dc.w	%0011111111111111	;2
+	dc.w	%0001111111111111	;3
+	dc.w	%0000111111111111	;4
+	dc.w	%0000011111111111	;5
+	dc.w	%0000001111111111	;6
+	dc.w	%0000000111111111	;7
+	dc.w	%0000000011111111	;8
+	dc.w	%0000000001111111	;9
+	dc.w	%0000000000111111	;A
+	dc.w	%0000000000011111	;B
+	dc.w	%0000000000001111	;C
+	dc.w	%0000000000000111	;D
+	dc.w	%0000000000000011	;E
+	dc.w	%0000000000000001	;F
+
+DTHL_MaskRight:
+	dc.w	%1000000000000000	;0
+	dc.w	%1100000000000000	;1
+	dc.w	%1110000000000000	;2
+	dc.w	%1111000000000000	;3
+	dc.w	%1111100000000000	;4
+	dc.w	%1111110000000000	;5
+	dc.w	%1111111000000000	;6
+	dc.w	%1111111100000000	;7
+	dc.w	%1111111110000000	;8
+	dc.w	%1111111111000000	;9
+	dc.w	%1111111111100000	;A
+	dc.w	%1111111111110000	;B
+	dc.w	%1111111111111000	;C
+	dc.w	%1111111111111100	;D
+	dc.w	%1111111111111110	;E
+	dc.w	%1111111111111111	;F
 
 ;***************************************************
 ;Fast Data
 ;***************************************************
 	SECTION	"Intro data",DATA_F
-	INCLUDE "routines/CubeTriangle.s"
+;	INCLUDE "routines/CubeTriangle.s"
+	INCLUDE "routines/Triangle.s"
+
+Video_YTable:
+	ds.w	Scr3D_Height,0
 
 ;***************************************************
 ;Chip Data
@@ -150,7 +355,7 @@ Copper:
 	dc.w	$0090,$2cc1		;Screen Size
 	dc.w	$0092,$0038		;H-start
 	dc.w	$0094,$00d0		;H-stop
-	dc.w	$0100,$0200		;Bit-Plane control reg.
+	dc.w	$0100,$2200		;Bit-Plane control reg.
 	dc.w	$0102,$0000		;Hor-Scroll
 	dc.w	$0104,$0010		;Sprite/Gfx priority
 	dc.w	$0106,$0c00		;BPLCON3 Default DPF color offsets

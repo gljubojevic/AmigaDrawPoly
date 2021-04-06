@@ -8,7 +8,8 @@
     <script type="text/javascript" src="mc68000fake.js"></script>
     <script type="text/javascript">
 		//var fixPoint = 16;	// fix point precision
-		var fixPoint = 12;		// fix point precision (looks like it is enough)
+		//var fixPoint = 12;		// fix point precision (looks like it is enough)
+		var fixPoint = 6;		// fix point precision (looks like it is enough)
 
 		// draw triangle
 		// D0, D1	x1,y1
@@ -16,7 +17,7 @@
 		// D4, D5	x3,y3
 		// D6		color index
 		function drawTriangle(ctx, img, D0, D1, D2, D3, D4, D5, D6) {
-			var D9;		// TODO: optimize regs
+			var D9;		// TODO: optimize registers
 			var color = D6;
 
 			// sort cords by Y
@@ -43,7 +44,7 @@
 				return;
 			}
 
-			// all X cordinates shift for fixpoint
+			// all X coordinates shift for fixedpoint
 			D0 = D0 << fixPoint;
 			D2 = D2 << fixPoint;
 			D4 = D4 << fixPoint;
@@ -61,14 +62,14 @@
 				// loop for first short line
 				D6 = D0;
 				while (D1 < D3) {
-					hlineDirect(img, color, D1, D0, D6);
+					hLineDirect(img, color, D1, D0, D6);
 					D0 += D7;
 					D6 += D9;
 					D1++;
 				}
 			}
 
-			if (D1 == D5) {	// exit last line is horizintal and drawn
+			if (D1 == D5) {	// exit last line is horizontal and drawn
 				return;
 			}
 
@@ -78,14 +79,14 @@
 			D4 = Math.floor(D4 / D6);	// (x3-x2) / (y3-y2)
 			// loop for second short line
 			while (D1 < D5) {
-				hlineDirect(img, color, D1, D0, D2);
+				hLineDirect(img, color, D1, D0, D2);
 				D0 += D7;
 				D2 += D4;
 				D1++;
 			}
 		}
 
-		// draw triangle bootom to top
+		// draw triangle bottom to top
 		// D0, D1	x1,y1
 		// D2, D3	x2,y2
 		// D4, D5	x3,y3
@@ -114,19 +115,19 @@
 			return [v2, v1];
 		}
 
-		// TODO: non overlaping triangle rendering
+		// TODO: non overlapping triangle rendering
 		// You also need the arithmetic-certainty of fixed-point integer math instead of the rounding errors of floating point math. 
-		// - The left end of each rasterized scanline starts at first pixel greater or equal to the starting scan value. 
-		// - The right end of the rasterized scanline ends on the one before the first pixel strictly less than the end scan value.
-		function hlineDirect(img, color, y, x1, x2){
+		// - The left end of each raster line starts at first pixel greater or equal to the starting scan value. 
+		// - The right end of the raster line ends on the one before the first pixel strictly less than the end scan value.
+		function hLineDirect(img, color, y, x1, x2){
 			x1 = x1 >> fixPoint;
 			x2 = x2 >> fixPoint;
-			// dont draw right edge
+			// don't draw right edge
 			if (x1 == x2)	{return;}
 			if (x1 > x2) {
 				[x1,x2] = exg(x1, x2);
 			}
-			x2--;	// dont draw right edge
+			x2--;	// don't draw right edge
 
 			// color
 			b = color & 0xff;
@@ -235,7 +236,7 @@
 				y += pos[1];
 				z += pos[2];
 
-				// persp
+				// perspective
 				p = d / z;
 				x = p * x + centerX;
 				y = p * y + centerY;
@@ -304,14 +305,14 @@
 				// drawing triangle
 				polyIdx = i >> 2;
 
-				// face vertex index multipled by 3
-				// for easier accest vertex
+				// face vertex index multiplied by 3
+				// for easier accessed vertex
 				var v0 = obj.faces[i+0];
 				var v1 = obj.faces[i+1];
 				var v2 = obj.faces[i+2];
 				var col = obj.faces[i+3];
 
-				// check poligon visible
+				// check polygon visible
 				var visible = isVisible(
 					vtx[v0], vtx[v0+1],
 					vtx[v1], vtx[v1+1],
@@ -410,7 +411,7 @@
 		}
 
 		function start() {
-			ctx2 = document.getElementById("canwasShow").getContext("2d");
+			ctx2 = document.getElementById("canvasShow").getContext("2d");
 			ctx2.fillStyle = '#000';
 			ctx2.lineWidth = 1;
 			ctx2.strokeStyle = '#fff';
@@ -430,7 +431,7 @@
 	</script>
 </head>
 <body onload="start();">
-	<canvas id="canwasShow" width="320" height="256" style="border:solid 1px red;width:640px;height:512px;"></canvas>
+	<canvas id="canvasShow" width="320" height="256" style="border:solid 1px red;width:640px;height:512px;"></canvas>
 	<p>
 		<a href="https://amycoders.org/" target="blank">https://amycoders.org/</a>
 	</p>

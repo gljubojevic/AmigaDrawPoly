@@ -12,6 +12,9 @@ $ ./clean.sh
 ```
 
 ## References
+Source code examples:
+- https://amigasourcecodepreservation.gitlab.io/amiga-real-time-3d-graphics/
+
 Workspace is build using example
 - https://github.com/prb28/vscode-amiga-wks-example
 
