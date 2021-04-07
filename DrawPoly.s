@@ -75,7 +75,7 @@ VTBInt_Handler:
 ;***********************************
 ; interrupt code here
 ;***********************************
-	move.w	#$0000,$180(a6)	; Mark start
+	move.w	#$0f00,$180(a6)	; Mark start
 
 	move.l	VideoMem(pc),a0
 	lea	Video_YTable,a1
@@ -101,8 +101,9 @@ VTBInt_End:
 Scr3D_Width		= 320
 Scr3D_Height	= 256
 Scr3D_Bitmaps	= 2
-Scr3D_WBytes	= Scr3D_Width/8
-Scr3D_VideoMem	= Scr3D_WBytes*Scr3D_Height*Scr3D_Bitmaps
+Scr3D_WBytes	= Scr3D_Width/8					;bytes single line bitmap
+Scr3D_LBytes	= Scr3D_WBytes*Scr3D_Bitmaps	;bytes interleaved line all bitmaps 
+Scr3D_VideoMem	= Scr3D_LBytes*Scr3D_Height		;video memeory size
 
 Video_Init:
 	movem.l	d0-d2/a0-a1,-(sp)
@@ -149,7 +150,7 @@ VideoMem:
     dc.l    0   ; show buffer
 
 VideoColors:
-	dc.w	$0000,$0fff,$0006,$0007
+	dc.w	$0000,$0fff,$0f00,$0007
 
 ; Draw 3D object after transformation on screen
 ; a0 - Video memory
@@ -157,12 +158,12 @@ VideoColors:
 ; a2 - Object pointer
 DrawObject:
 	movem.l d0-a6,-(sp)
-	move.l	20(a2),a3	; pointer to triangles
-	move.l	16(a2),a2	; ponter to rotated vertex
+	move.l	20(a2),a3		;a3 - pointer to triangles
+	move.l	16(a2),a2		;a2 - ponter to rotated vertex
 DO_NextTriangle:
-	move.w	(a3)+,d3	; d3 - color
-	bmi.s	DO_Done		; no more triangles
-	movem.w	(a3)+,d0-d2	; vextex pointers
+	move.w	(a3)+,d3		; d3 - color
+	bmi.s	DO_Done			; no more triangles
+	movem.w	(a3)+,d0-d2		; vextex pointers
 	move.l	(a2,d0.w),d0	; d0 X0,Y0
 	move.l	(a2,d1.w),d1	; d1 X1,Y1
 	move.l	(a2,d2.w),d2	; d2 X2,Y2
@@ -180,7 +181,7 @@ DO_Done:
 ; d3 - color
 ; a0 - Video memory
 ; a1 - YTable offsets
-DT_FixPoint=6	;interpolation precision
+DT_FixPoint=8	;interpolation precision
 ;
 DrawTriangle:
 	cmp.w	d1,d0	;Y1 < Y0
@@ -195,80 +196,97 @@ DT_Sort2:
 	ble.s	DT_Sorted
 	exg.l	d2,d1
 DT_Sorted:
-	move.w	d2,d5
-	sub.w	d0,d5	;Y2-Y0
+	move.w	d2,d4	;Y2
+	sub.w	d0,d4	;Y2-Y0
 	beq.s	DT_Done	;trinagle is 0 size
-
-	move.w	d1,d6
+	move.w	d2,d5	;Y2
+	sub.w	d1,d5	;Y2-Y1
+	move.w	d1,d6	;Y1
 	sub.w	d0,d6	;Y1-Y0
 
-	move.w	d2,d7
-	sub.w	d1,d7	;Y2-Y1
+	add.w	d0,d0	;Y0
+	move.w	(a1,d0.w),d0	;Y0 offset in video moemory
+	lea		(a0,d0.w),a4	;a4 - Video memory at Y0
 
-	move.w	d0,d4	;Y0
-	add.w	d4,d4
-	move.w	(a1,d4.w),d4	;Y0 offset in video moemory
-	lea		(a0,d4.w),a4	;a4 - Video memory at Y0
+	swap	d0		;X0
+	swap	d1		;X1
+	swap	d2		;X2
 
-	swap	d0	;X0
-	swap	d1	;X1
-	swap	d2	;X2
+	move.w	d2,d7	;X2
+	sub.w	d1,d7	;X2-X1
 
 	sub.w	d0,d2	;X2-X0
 	ext.l	d2
 	asl.l	#DT_FixPoint,d2
-	divs	d5,d2
-	ext.l	d2	;(X2-X0) / (Y2-Y0)
+	divs	d4,d2 	;(X2-X0) / (Y2-Y0)
+	ext.l	d2
 
 	sub.w	d0,d1	;X1-X0
+;TODO: Fix possible division by 0 on first half
+
 	ext.l	d1
 	asl.l	#DT_FixPoint,d1
-	divs	d6,d1
-	ext.l	d1	;(X1-X0) / (Y1-Y0)
+	divs	d6,d1	;(X1-X0) / (Y1-Y0)
+	ext.l	d1	
 
 	ext.l	d0
-	asl.l	#DT_FixPoint,d0
-	move.l	d0,d5
-DT_FirstTriangle:
+	asl.l	#DT_FixPoint,d0	;Xleft
+	move.l	d0,d4			;XRight
+DT_FirstHalf:
 	bsr.s	DT_HorizontalLine
-	add.l	d2,d0
-	add.l	d1,d5
-	lea		Scr3D_WBytes*Scr3D_Bitmaps(a4),a4
-	dbf		d6,DT_FirstTriangle
+	add.l	d2,d0	;XLeft  + ((X2-X0) / (Y2-Y0))
+	add.l	d1,d4	;XRight + ((X1-X0) / (Y1-Y0))
+	lea		Scr3D_LBytes(a4),a4
+	dbf		d6,DT_FirstHalf
+
+	tst.w	d5
+	beq.s	DT_Done	; no second trinagle
+
+	ext.l	d7
+	asl.l	#DT_FixPoint,d7
+	divs	d5,d7
+	ext.l	d7	; (X2-X1) / (Y2-Y1)
+DT_SecondHalf:
+	bsr.s	DT_HorizontalLine
+	add.l	d2,d0	;XLeft  + ((X2-X0) / (Y2-Y0))
+	add.l	d7,d4	;XRight + ((X2-X1) / (Y2-Y1))
+	lea		Scr3D_LBytes(a4),a4
+	dbf		d5,DT_SecondHalf
 
 DT_Done;
 	rts
 
 ; d0 X1
-; d5 X2
+; d4 X2
 ; d3 - color
 ; a4 - Video memory Y cord
 DT_HorizontalLine:
 	movem.l d0/d4-d7,-(sp)
+;	move.w	#$00f0,$180(a6)
 	asr.l	#DT_FixPoint,d0
-	asr.l	#DT_FixPoint,d5
-	cmp.l	d0,d5
+	asr.l	#DT_FixPoint,d4
+	cmp.l	d0,d4
 	beq.s	DTHL_Done
 	bgt.s	DTHL_OrderOk
-	exg.l	d0,d5
+	exg.l	d0,d4
 DTHL_OrderOk:
-	moveq	#$0f,d4
+	moveq	#$0f,d5
 
 	move.l	d0,d6
-	and.l	d4,d6
+	and.l	d5,d6
 	add.w	d6,d6
 	move.w	DTHL_MaskLeft(pc,d6.w),d6
 	asr.l	#4,d0
 	add.l	d0,d0
 
-	move.l	d5,d7
-	and.l	d4,d7
+	move.l	d4,d7
+	and.l	d5,d7
 	add.w	d7,d7
 	move.w	DTHL_MaskRight(pc,d7.w),d7
-	asr.l	#4,d5
-	add.l	d5,d5
+	asr.l	#4,d4
+	add.l	d4,d4
 
-	cmp.l	d0,d5
+	cmp.l	d0,d4
 	bne.s	DTHL_NotSameWord
 	eor.w	d6,d7
 	not.w	d7
@@ -278,20 +296,21 @@ DTHL_OrderOk:
 
 DTHL_NotSameWord:
 	or.w	d6,(a4,d0.w)
-	or.w	d7,(a4,d5.w)
+	or.w	d7,(a4,d4.w)
 	;TODO: Colors
-	subq	#2,d5
-	cmp.w	d0,d5
+	subq	#2,d4
+	cmp.w	d0,d4
 	beq.s	DTHL_Done
-	move.w	#$ffff,d4
+	move.w	#$ffff,d5
 DTHL_NextWord:
 	addq.w	#2,d0
-	or.w	d4,(a4,d0.w)
+	or.w	d5,(a4,d0.w)
 	;TODO: Colors
-	cmp.w	d5,d0
+	cmp.w	d4,d0
 	blt.s	DTHL_NextWord
 
 DTHL_Done:
+;	move.w	#$0f00,$180(a6)
 	movem.l (sp)+,d0/d4-d7
 	rts
 
@@ -377,6 +396,7 @@ Copper_BP:
 Copper_Col:
 	dc.w	$0180,$0000,$0182,$0000
 	dc.w	$0184,$0000,$0186,$0000
+	dc.w	$2c01,$fffe
 	IF	COPPERINT=1
 	dc.w	$009c,$8010			;INTREQ
 	ENDIF
