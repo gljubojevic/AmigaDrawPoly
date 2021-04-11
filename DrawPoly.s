@@ -222,16 +222,16 @@ DT_Sorted:
 	ext.l	d2
 
 	sub.w	d0,d1	;X1-X0
-;TODO: Fix possible division by 0 on first half
+	ext.l	d0
+	asl.l	#DT_FixPoint,d0	;Xleft
+	move.l	d0,d4			;XRight
+	tst.w	d6
+	beq.s	DT_SkipFirstHalf	;Avoid division by zero
 
 	ext.l	d1
 	asl.l	#DT_FixPoint,d1
 	divs	d6,d1	;(X1-X0) / (Y1-Y0)
 	ext.l	d1	
-
-	ext.l	d0
-	asl.l	#DT_FixPoint,d0	;Xleft
-	move.l	d0,d4			;XRight
 DT_FirstHalf:
 	bsr.s	DT_HorizontalLine
 	add.l	d2,d0	;XLeft  + ((X2-X0) / (Y2-Y0))
@@ -239,13 +239,14 @@ DT_FirstHalf:
 	lea		Scr3D_LBytes(a4),a4
 	dbf		d6,DT_FirstHalf
 
+DT_SkipFirstHalf:
 	tst.w	d5
 	beq.s	DT_Done	; no second trinagle
 
 	ext.l	d7
 	asl.l	#DT_FixPoint,d7
 	divs	d5,d7
-	ext.l	d7	; (X2-X1) / (Y2-Y1)
+	ext.l	d7		;(X2-X1) / (Y2-Y1)
 DT_SecondHalf:
 	bsr.s	DT_HorizontalLine
 	add.l	d2,d0	;XLeft  + ((X2-X0) / (Y2-Y0))
