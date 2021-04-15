@@ -104,17 +104,15 @@ DTHL_OrderOk:
 	moveq.l	#-1,d6
 	lsr.l	d5,d6
 	asr.l	#5,d1	;Left offset
-	add.l	d1,d1
-	add.l	d1,d1
+	lsl.l	#2,d1
 
 	move.l	d2,d5	;Right mask
 	and.l	d4,d5
 	moveq.l	#-1,d7
 	lsr.l	d5,d7
 	not.l	d7
-	asr.l	#5,d2	;Right offset 
-	add.l	d2,d2
-	add.l	d2,d2
+	asr.l	#5,d2	;Right offset
+	lsl.l	#2,d2
 
 	cmp.l	d1,d2
 	bne.s	DTHL_NotSameWord
@@ -128,7 +126,7 @@ DTHL_NotSameWord:
 	or.l	d6,(a5,d1.w)
 	or.l	d7,(a5,d2.w)
 	;TODO: Colors
-	subq	#4,d2
+	subq.w	#4,d2
 	cmp.w	d1,d2
 	beq.s	DTHL_NoLine
 	moveq	#-1,d5	;$ffffffff
