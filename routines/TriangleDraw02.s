@@ -88,6 +88,7 @@ DT_NoSecondHalf:
 	lea		DT_Edges(pc),a4	;Edges in a5
 	movem.w	(a4)+,d0/d1		;Height, Y offest
 	lea		(a0,d1.w),a5	;Video memory frist Y cord
+	moveq	#$1f,d4			;Mask size
 DTHL_NextLine
 	movem.l	(a4)+,d1/d2		;X1,X2
 	asr.l	#DT_FixPoint,d1
@@ -97,7 +98,6 @@ DTHL_NextLine
 	bgt.s	DTHL_OrderOk
 	exg.l	d1,d2
 DTHL_OrderOk:
-	moveq	#$1f,d4
 
 	move.l	d1,d5	;Left mask
 	and.l	d4,d5
