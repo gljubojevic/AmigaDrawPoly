@@ -105,14 +105,15 @@ DTHL_OrderOk:
 	move.l	d1,d6
 	and.l	d4,d6
 	add.w	d6,d6
-	move.w	DTHL_MaskLeft(pc,d6.w),d6
+	move.w	DTHL_Mask(pc,d6.w),d6
 	asr.l	#4,d1
 	add.l	d1,d1
 
 	move.l	d2,d7
 	and.l	d4,d7
 	add.w	d7,d7
-	move.w	DTHL_MaskRight(pc,d7.w),d7
+	move.w	DTHL_Mask(pc,d7.w),d7
+	not.w	d7
 	asr.l	#4,d2
 	add.l	d2,d2
 
@@ -146,7 +147,7 @@ DTHL_NoLine:
 DT_Done;
 	rts
 
-DTHL_MaskLeft:
+DTHL_Mask:
 	dc.w	%1111111111111111	;0
 	dc.w	%0111111111111111	;1
 	dc.w	%0011111111111111	;2
@@ -163,24 +164,6 @@ DTHL_MaskLeft:
 	dc.w	%0000000000000111	;D
 	dc.w	%0000000000000011	;E
 	dc.w	%0000000000000001	;F
-
-DTHL_MaskRight:
-	dc.w	%1000000000000000	;0
-	dc.w	%1100000000000000	;1
-	dc.w	%1110000000000000	;2
-	dc.w	%1111000000000000	;3
-	dc.w	%1111100000000000	;4
-	dc.w	%1111110000000000	;5
-	dc.w	%1111111000000000	;6
-	dc.w	%1111111100000000	;7
-	dc.w	%1111111110000000	;8
-	dc.w	%1111111111000000	;9
-	dc.w	%1111111111100000	;A
-	dc.w	%1111111111110000	;B
-	dc.w	%1111111111111000	;C
-	dc.w	%1111111111111100	;D
-	dc.w	%1111111111111110	;E
-	dc.w	%1111111111111111	;F
 
 DT_Edges:
 	dc.w	0				;height of triangle
