@@ -4,7 +4,7 @@
         {
             "type": "fs-uae",
             "request": "launch",
-            "name": "FS-UAE Debug",
+            "name": "FS-UAE A1200 Debug",
             "stopOnEntry": false,
             "serverName": "localhost",
             "serverPort": 6860,
@@ -37,9 +37,44 @@
             ]
         },
         {
+            "type": "fs-uae",
+            "request": "launch",
+            "name": "FS-UAE A500+ Debug",
+            "stopOnEntry": false,
+            "serverName": "localhost",
+            "serverPort": 6860,
+            "trace": false,
+            "startEmulator": true,
+            "buildWorkspace": true,
+            "windows": {
+                "emulator": "${workspaceFolder}/bin/fs-uae.exe",
+            },
+            "osx": {
+                "emulator": "${workspaceFolder}/bin/fs-uae",
+            },
+            "linux": {
+                "emulator": "${workspaceFolder}/bin/fs-uae",
+            },
+            "emulatorWorkingDir": "${workspaceFolder}/bin",
+            "program": "${workspaceFolder}/uae/dh0/DrawPoly",
+            "options": [
+                "--chip_memory=1024",
+                "--hard_drive_0=${workspaceFolder}/uae/dh0",
+                "--joystick_port_1=none",
+                "--amiga_model=A500+",
+                "--fast_memory=1024",
+                "--remote_debugger=200",
+                "--use_remote_debugger=true",
+                "--automatic_input_grab=0",
+				"--video_sync=off",
+				"--window_width=692",
+				"--window_height=540"
+            ]
+        },
+        {
             "type": "uae-run",
             "request": "launch",
-            "name": "FS-UAE Run",
+            "name": "FS-UAE A1200 Run",
             "buildWorkspace": true,
             "emulator": "${workspaceFolder}/bin/fs-uae",
             "windows": {
@@ -58,6 +93,34 @@
                 "--joystick_port_1=none",
                 "--amiga_model=A1200",
                 "--fast_memory=2048",
+                "--automatic_input_grab=0",
+				"--video_sync=off",
+				"--window_width=692",
+				"--window_height=540"
+            ]
+        },
+        {
+            "type": "uae-run",
+            "request": "launch",
+            "name": "FS-UAE A500+ Run",
+            "buildWorkspace": true,
+            "emulator": "${workspaceFolder}/bin/fs-uae",
+            "windows": {
+                "emulator": "${workspaceFolder}/bin/fs-uae.exe",
+            },
+            "osx": {
+                "emulator": "${workspaceFolder}/bin/fs-uae",
+            },
+            "linux": {
+                "emulator": "${workspaceFolder}/bin/fs-uae",
+            },
+            "emulatorWorkingDir": "${workspaceFolder}/bin",
+            "options": [
+                "--chip_memory=1024",
+                "--hard_drive_0=${workspaceFolder}/uae/dh0",
+                "--joystick_port_1=none",
+                "--amiga_model=A500+",
+                "--fast_memory=1024",
                 "--automatic_input_grab=0",
 				"--video_sync=off",
 				"--window_width=692",
