@@ -1,3 +1,50 @@
+Scr3D_TablesInit:
+	movem.l	d0-d3/a0,-(sp)
+	lea		Scr3D_YTable,a0
+	moveq	#0,d0
+	move.l	#Scr3D_Height-1,d1
+VI_NextYOffset:
+	move.w	d0,(a0)+
+	add.w	#Scr3D_WBytes*Scr3D_Bitmaps,d0
+	dbf		d1,VI_NextYOffset
+
+	lea		Scr3D_XMask,a0
+	moveq	#0,d0
+	move.l	#Scr3D_Width-1,d1
+VI_NextXMask:
+	move.l	d0,d2
+	and.l	#$0f,d2
+	moveq.l	#-1,d3
+	lsr.w	d2,d3
+	move.w	d3,(a0)+
+	addq.l	#1,d0
+	dbf		d1,VI_NextXMask
+	movem.l	(sp)+,d0-d3/a0
+	rts
+
+
+; Draw 3D object after transformation on screen
+; a0 - Video memory
+; a1 - YTable offsets
+; a2 - Object pointer
+DrawObject:
+	movem.l d0-a6,-(sp)
+	move.l	20(a2),a3		;a3 - pointer to triangles
+	move.l	16(a2),a2		;a2 - ponter to rotated vertex
+DO_NextTriangle:
+	move.w	(a3)+,d3		; d3 - color
+	bmi.s	DO_Done			; no more triangles
+	movem.w	(a3)+,d0-d2		; vextex pointers
+	move.l	(a2,d0.w),d0	; d0 X0,Y0
+	move.l	(a2,d1.w),d1	; d1 X1,Y1
+	move.l	(a2,d2.w),d2	; d2 X2,Y2
+	; TODO: Check visible
+	bsr.s	DrawTriangle
+	bra.s	DO_NextTriangle
+DO_Done:
+	movem.l (sp)+,d0-a6
+	rts
+
 ; Draw triangle A500 to video memory, draws top to bottom
 ; Note:
 ;	- Uses edge buffer
@@ -170,3 +217,9 @@ DT_Edges:
 	dc.w	0				;height of triangle
 	dc.w	0				;video memory y offet
 	ds.l	Scr3D_Height*2	;edges X1, X2
+
+;put closer to routines
+Scr3D_XMask:
+	ds.w	Scr3D_Width,0
+Scr3D_YTable:
+	ds.w	Scr3D_Height,0
