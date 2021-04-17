@@ -107,31 +107,31 @@ DTHL_NextLine
 	movem.l	(a4)+,d1/d2		;X1,X2
 	lsr.l	#DT_FixPoint,d1
 	lsr.l	#DT_FixPoint,d2
-	cmp.l	d1,d2
+	cmp.w	d1,d2
 	beq.s	DTHL_NoLine
 	bgt.s	DTHL_OrderOk
-	exg.l	d1,d2
+	exg		d1,d2
 DTHL_OrderOk:
 
-	move.l	d1,d5	;Left mask
-	and.l	d4,d5
-	moveq	#-1,d6
-	lsr.w	d5,d6
-	lsr.l	#4,d1	;Left offset
-	lsl.l	#1,d1
+	move.w	d1,d6
+	add.w	d6,d6
+	move.w	d2,d7
+	add.w	d7,d7
+	lea		Scr3D_XMask(pc),a3
+	move.w	(a3,d6),d6	;Left mask
+	move.w	(a3,d7),d7	;Right mask
+	not.w	d7
 
-	move.l	d2,d5	;Right mask
-	and.l	d4,d5
-	moveq	#-1,d7
-	lsr.w	d5,d7
-	not.l	d7
-	lsr.l	#4,d2	;Right offset
-	lsl.l	#1,d2
+	lsr.w	#4,d1	;Left offset
+	add.w	d1,d1
 
-	cmp.l	d1,d2
+	lsr.w	#4,d2	;Right offset
+	add.w	d2,d2
+
+	cmp.w	d1,d2
 	bne.s	DTHL_NotSameLong
-	eor.l	d6,d7			;Start and end on same offset
-	not.l	d7
+	eor.w	d6,d7			;Start and end on same offset
+	not.w	d7
 	or.w	d7,(a5,d1.w)	;TODO: Colors
 	lea		Scr3D_LBytes(a5),a5
 	dbf		d0,DTHL_NextLine

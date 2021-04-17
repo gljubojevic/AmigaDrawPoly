@@ -132,7 +132,7 @@ VI_NextXMask:
 	move.l	d0,d2
 	and.l	#$0f,d2
 	moveq.l	#-1,d3
-	lsr.l	d2,d3
+	lsr.w	d2,d3
 	move.w	d3,(a0)+
 	addq.l	#1,d0
 	dbf		d1,VI_NextXMask
