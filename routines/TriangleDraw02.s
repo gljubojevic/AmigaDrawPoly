@@ -1,5 +1,5 @@
 Scr3D_TablesInit:
-	movem.l	d0-d3/a0,-(sp)
+	movem.l	d0-d1/a0,-(sp)
 	lea		Scr3D_YTable,a0
 	moveq	#0,d0
 	move.l	#Scr3D_Height-1,d1
@@ -7,7 +7,7 @@ VI_NextYOffset:
 	move.w	d0,(a0)+
 	add.w	#Scr3D_WBytes*Scr3D_Bitmaps,d0
 	dbf		d1,VI_NextYOffset
-	movem.l	(sp)+,d0-d3/a0
+	movem.l	(sp)+,d0-d1/a0
 	rts
 
 ; Draw 3D object after transformation on screen
@@ -92,7 +92,8 @@ DT_Sorted:
 	ext.l	d1
 	asl.l	#DT_FixPoint,d1
 	divs	d6,d1	;(X1-X0) / (Y1-Y0)
-	ext.l	d1	
+	ext.l	d1
+	subq.l	#1,d6
 DT_FirstHalf:
 	move.l	d0,(a4)+
 	add.l	d2,d0	;XLeft  + ((X2-X0) / (Y2-Y0))
@@ -108,6 +109,7 @@ DT_SkipFirstHalf:
 	asl.l	#DT_FixPoint,d7
 	divs	d5,d7
 	ext.l	d7		;(X2-X1) / (Y2-Y1)
+	subq.l	#1,d5
 DT_SecondHalf:
 	move.l	d0,(a4)+
 	add.l	d2,d0	;XLeft  + ((X2-X0) / (Y2-Y0))
@@ -117,8 +119,9 @@ DT_SecondHalf:
 DT_NoSecondHalf:
 ;Draw horizontal lines
 ; d3 - Color
-	;move.w	#$00f0,$180(a6)
+	move.w	#$00f0,$180(a6)
 
+	move.l	a3,-(sp)
 	lea		DT_Edges(pc),a4	;Edges in a5
 	movem.w	(a4)+,d0/d1		;Height, Y offest
 	lea		(a0,d1.w),a5	;Video memory frist Y cord
@@ -127,53 +130,56 @@ DTHL_NextLine
 	movem.l	(a4)+,d1/d2		;X1,X2
 	asr.l	#DT_FixPoint,d1
 	asr.l	#DT_FixPoint,d2
-	cmp.l	d1,d2
+	cmp.w	d1,d2
 	beq.s	DTHL_NoLine
 	bgt.s	DTHL_OrderOk
-	exg.l	d1,d2
+	exg		d1,d2
 DTHL_OrderOk:
 
-	move.l	d1,d5	;Left mask
-	and.l	d4,d5
+	move.w	d1,d5	;Left mask
+	and.w	d4,d5
 	moveq.l	#-1,d6
 	lsr.l	d5,d6
-	asr.l	#5,d1	;Left offset
-	lsl.l	#2,d1
+	asr.w	#5,d1	;Left offset
+	lsl.w	#2,d1
 
-	move.l	d2,d5	;Right mask
-	and.l	d4,d5
+	move.w	d2,d5	;Right mask
+	and.w	d4,d5
 	moveq.l	#-1,d7
 	lsr.l	d5,d7
 	not.l	d7
-	asr.l	#5,d2	;Right offset
-	lsl.l	#2,d2
+	asr.w	#5,d2	;Right offset
+	lsl.w	#2,d2
 
-	cmp.l	d1,d2
-	bne.s	DTHL_NotSameWord
+	cmp.w	d1,d2
+	bne.s	DTHL_NotSameLong
 	eor.l	d6,d7
 	not.l	d7
-	or.l	d7,(a5,d1.w)
-	;TODO: Colors
-	bra.s	DTHL_NoLine
+	or.l	d7,(a5,d1.w)	;TODO: Colors
+	lea		Scr3D_LBytes(a5),a5
+	dbf		d0,DTHL_NextLine
+	move.l	(sp)+,a3
+	rts
 
-DTHL_NotSameWord:
-	or.l	d6,(a5,d1.w)
-	or.l	d7,(a5,d2.w)
-	;TODO: Colors
+DTHL_NotSameLong:
+	lea		(a5,d1.w),a3
+	or.l	d6,(a3)+
 	subq.w	#4,d2
-	cmp.w	d1,d2
-	beq.s	DTHL_NoLine
+	sub.w	d1,d2
+	beq.s	DTHL_LastLong
+	lsr.w	#2,d2
+	subq.w	#1,d2
 	moveq	#-1,d5	;$ffffffff
-DTHL_NextWord:
-	addq.w	#4,d1
-	or.l	d5,(a5,d1.w)
-	;TODO: Colors
-	cmp.w	d2,d1
-	blt.s	DTHL_NextWord
+DTHL_NextLong:
+	or.l	d5,(a3)+	;TODO: Colors
+	dbf		d2,DTHL_NextLong
+DTHL_LastLong:
+	or.l	d7,(a3)+	;TODO: Colors
 
 DTHL_NoLine:
 	lea		Scr3D_LBytes(a5),a5
 	dbf		d0,DTHL_NextLine
+	move.l	(sp)+,a3
 
 DT_Done;
 	rts
