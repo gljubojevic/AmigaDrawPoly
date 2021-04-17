@@ -12,7 +12,8 @@
 			"options": [
 				"-m68000",
 				"-Fhunk",
-				"-linedebug"
+				"-linedebug",
+				"-nowarn=2069"
 			]
 		},
 		"amiga-assembly.vlink": {
