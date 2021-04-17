@@ -62,6 +62,7 @@ DT_Sorted:
 	divs	d6,d1	;(X1-X0) / (Y1-Y0)
 	ext.l	d1
 DT_FirstHalf:
+	subq.w	#1,d6
 	neg.w	d6			;Calc jmp offset
 	add.w	#255,d6		;max trinagle height is 255
 	lsl.w	#3,d6		;instructions are 8 bytes inside rept
