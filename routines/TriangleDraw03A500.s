@@ -98,14 +98,15 @@ DT_NoSecondHalf:
 ; d3 - Color
 	move.w	#$00f0,$180(a6)
 
+	move.l	a3,-(sp)
 	lea		DT_Edges(pc),a4	;Edges in a5
 	movem.w	(a4)+,d0/d1		;Height, Y offest
 	lea		(a0,d1.w),a5	;Video memory frist Y cord
 	moveq	#$1f,d4			;Mask size
 DTHL_NextLine
 	movem.l	(a4)+,d1/d2		;X1,X2
-	asr.l	#DT_FixPoint,d1
-	asr.l	#DT_FixPoint,d2
+	lsr.l	#DT_FixPoint,d1
+	lsr.l	#DT_FixPoint,d2
 	cmp.l	d1,d2
 	beq.s	DTHL_NoLine
 	bgt.s	DTHL_OrderOk
@@ -116,7 +117,7 @@ DTHL_OrderOk:
 	and.l	d4,d5
 	moveq.l	#-1,d6
 	lsr.l	d5,d6
-	asr.l	#5,d1	;Left offset
+	lsr.l	#5,d1	;Left offset
 	lsl.l	#2,d1
 
 	move.l	d2,d5	;Right mask
@@ -124,35 +125,42 @@ DTHL_OrderOk:
 	moveq.l	#-1,d7
 	lsr.l	d5,d7
 	not.l	d7
-	asr.l	#5,d2	;Right offset
+	lsr.l	#5,d2	;Right offset
 	lsl.l	#2,d2
 
 	cmp.l	d1,d2
-	bne.s	DTHL_NotSameWord
-	eor.l	d6,d7
+	bne.s	DTHL_NotSameLong
+	eor.l	d6,d7			;Start and end on same offset
 	not.l	d7
-	or.l	d7,(a5,d1.w)
-	;TODO: Colors
-	bra.s	DTHL_NoLine
+	or.l	d7,(a5,d1.w)	;TODO: Colors
+	lea		Scr3D_LBytes(a5),a5
+	dbf		d0,DTHL_NextLine
 
-DTHL_NotSameWord:
-	or.l	d6,(a5,d1.w)
-	or.l	d7,(a5,d2.w)
-	;TODO: Colors
+DTHL_NotSameLong:
+	lea		(a5,d1.w),a3
+	or.l	d6,(a3)+
 	subq.w	#4,d2
 	cmp.w	d1,d2
-	beq.s	DTHL_NoLine
-	moveq	#-1,d5	;$ffffffff
-DTHL_NextWord:
-	addq.w	#4,d1
-	or.l	d5,(a5,d1.w)
-	;TODO: Colors
-	cmp.w	d2,d1
-	blt.s	DTHL_NextWord
+	beq.s	DLTH_LastLong
+	moveq	#-1,d5		;$ffffffff - fill patern
+	sub.w	d1,d2
+	lsr.w	#2,d2
+	subq.w	#1,d2
+	neg.w	d2
+	add.w	#(Scr3D_WBytes/4)-1,d2
+	add.w	d2,d2
+	jmp		(pc,d2.w)	;must have vasm -nowarn=2069
+DTHL_NextLong:
+	REPT	(Scr3D_WBytes/4)-1
+	or.l	d5,(a3)+	;TODO: Colors
+	ENDR
+DLTH_LastLong:
+	or.l	d7,(a3)+	;TODO: Colors
 
 DTHL_NoLine:
 	lea		Scr3D_LBytes(a5),a5
 	dbf		d0,DTHL_NextLine
+	move.l	(sp)+,a3
 
 DT_Done;
 	rts
