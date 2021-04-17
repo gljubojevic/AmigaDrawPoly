@@ -60,10 +60,10 @@ DT_Sorted:
 	divs	d6,d1	;(X1-X0) / (Y1-Y0)
 	ext.l	d1	
 DT_FirstHalf:
-	add.l	d2,d0	;XLeft  + ((X2-X0) / (Y2-Y0))
 	move.l	d0,(a4)+
-	add.l	d1,d4	;XRight + ((X1-X0) / (Y1-Y0))
+	add.l	d2,d0	;XLeft  + ((X2-X0) / (Y2-Y0))
 	move.l	d4,(a4)+
+	add.l	d1,d4	;XRight + ((X1-X0) / (Y1-Y0))
 	dbf		d6,DT_FirstHalf
 
 DT_SkipFirstHalf:
@@ -75,10 +75,10 @@ DT_SkipFirstHalf:
 	divs	d5,d7
 	ext.l	d7		;(X2-X1) / (Y2-Y1)
 DT_SecondHalf:
-	add.l	d2,d0	;XLeft  + ((X2-X0) / (Y2-Y0))
 	move.l	d0,(a4)+
-	add.l	d7,d4	;XRight + ((X2-X1) / (Y2-Y1))
+	add.l	d2,d0	;XLeft  + ((X2-X0) / (Y2-Y0))
 	move.l	d4,(a4)+
+	add.l	d7,d4	;XRight + ((X2-X1) / (Y2-Y1))
 	dbf		d5,DT_SecondHalf
 DT_NoSecondHalf:
 ;Draw horizontal lines
