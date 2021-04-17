@@ -106,7 +106,7 @@ Scr3D_LBytes	= Scr3D_WBytes*Scr3D_Bitmaps	;bytes interleaved line all bitmaps
 Scr3D_VideoMem	= Scr3D_LBytes*Scr3D_Height		;video memeory size
 
 Video_Init:
-	movem.l	d0-d2/a0-a1,-(sp)
+	movem.l	d0-d3/a0-a1,-(sp)
 
     lea 	VideoMem(pc),a0
     move.l 	#VideoMem01,$0(a0)
@@ -125,7 +125,19 @@ VI_NextYOffset:
 	add.w	#Scr3D_WBytes*Scr3D_Bitmaps,d0
 	dbf		d1,VI_NextYOffset
 
-	movem.l	(sp)+,d0-d2/a0-a1
+	lea		Scr3D_XMask,a0
+	moveq	#0,d0
+	move.l	#Scr3D_Width-1,d1
+VI_NextXMask:
+	move.l	d0,d2
+	and.l	#$0f,d2
+	moveq.l	#-1,d3
+	lsr.l	d2,d3
+	move.w	d3,(a0)+
+	addq.l	#1,d0
+	dbf		d1,VI_NextXMask
+
+	movem.l	(sp)+,d0-d3/a0-a1
     rts
 
 Video_swap:	
@@ -183,15 +195,18 @@ DO_Done:
 	;Third version with edge buffer A500 unrolled loops
 	INCLUDE "routines/TriangleDraw03A500.s"
 
+;put closer to routines
+Scr3D_XMask:
+	ds.w	Scr3D_Width,0
+Video_YTable:
+	ds.w	Scr3D_Height,0
+
 ;***************************************************
 ;Fast Data
 ;***************************************************
 	SECTION	"Intro data",DATA_F
 ;	INCLUDE "routines/CubeTriangle.s"
 	INCLUDE "routines/Triangle.s"
-
-Video_YTable:
-	ds.w	Scr3D_Height,0
 
 ;***************************************************
 ;Chip Data
