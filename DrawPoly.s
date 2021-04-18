@@ -149,10 +149,13 @@ VideoColors:
 	;INCLUDE "routines/TriangleDraw01.s"
 
 	;Secnod version with edge buffer
-	INCLUDE "routines/TriangleDraw02.s"
+	;INCLUDE "routines/TriangleDraw02.s"
 
 	;Third version with edge buffer A500 unrolled loops
 	;INCLUDE "routines/TriangleDraw03A500.s"
+
+	;New way, drawing any convex poly
+	INCLUDE "routines/PolyDraw01.s"
 
 ;***************************************************
 ;Fast Data
