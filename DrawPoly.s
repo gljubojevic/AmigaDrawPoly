@@ -79,9 +79,8 @@ VTBInt_Handler:
 	move.w	#$0f00,$180(a6)	; Mark start
 
 	move.l	VideoMem(pc),a0
-	lea	Scr3D_YTable,a1
-;	lea	CubeTriangle,a2
-	lea	Triangle,a2
+;	lea	CubeTriangle,a1
+	lea	Triangle,a1
 	bsr.w	DrawObject
 	bsr.w	Video_swap
 

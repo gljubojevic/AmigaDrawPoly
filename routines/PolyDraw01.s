@@ -12,19 +12,19 @@ VI_NextYOffset:
 
 ; Draw 3D object after transformation on screen
 ; a0 - Video memory
-; a1 - YTable offsets
-; a2 - Object pointer
+; a1 - Object pointer
 DrawObject:
 	movem.l d0-a6,-(sp)
-	move.l	20(a2),a3		;a3 - pointer to triangles
-	move.l	16(a2),a2		;a2 - ponter to rotated vertex
+	lea	Scr3D_YTable,a2
+	move.l	20(a1),a3		;a3 - pointer to triangles
+	move.l	16(a1),a1		;a2 - ponter to rotated vertex
 DO_NextPoly:
 	move.w	(a3)+,d3		; d3 - color
 	bmi.s	DO_Done			; no more triangles
 	movem.w	(a3)+,d0-d2		; vextex pointers
-	move.l	(a2,d0.w),d0	; d0 X0,Y0
-	move.l	(a2,d1.w),d1	; d1 X1,Y1
-	move.l	(a2,d2.w),d2	; d2 X2,Y2
+	move.l	(a1,d0.w),d0	; d0 X0,Y0
+	move.l	(a1,d1.w),d1	; d1 X1,Y1
+	move.l	(a1,d2.w),d2	; d2 X2,Y2
 	; TODO: Check visible
 	lea		DO_Lines(pc),a4	;Just temp copy for now
 	move.l	d0,(a4)+
@@ -115,7 +115,7 @@ DP_NoLine:
 	sub.w	d0,d1
 	subq.w	#1,d1
 	add.w	d0,d0
-	move.w	(a1,d0.w),d2
+	move.w	(a2,d0.w),d2
 	lea		(a0,d2.w),a6
 	add.w	d0,d0
 	lea		DP_Edges(pc,d0.w),a4
