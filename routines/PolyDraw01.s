@@ -63,59 +63,57 @@ DrawPoly:
 	lea		DO_Lines(pc),a4
 	lea		DO_YMinMax(pc),a5
 	moveq	#3-1,d0			;hardcoded for now
-	movem.w	(a4)+,d1-d2		;X1,Y1
-	move.w	d2,(a5)+
-	move.w	d2,(a5)+
+	move.l	(a4)+,d1		;X1,Y1
+	move.w	d1,(a5)+		;Reset YMin
+	move.w	d1,(a5)+		;Reset YMax
 DP_NextLine:
-	movem.w	(a4)+,d3-d4		;X2,Y2
+	move.l	(a4)+,d2		;X2,Y2
 
-	lea		DO_YMinMax(pc),a5
-	cmp.w	(a5)+,d4
+	subq.l	#4,a5			;Check YMin, YMax
+	cmp.w	(a5)+,d2
 	bge.s	DP_NotYMin
-	move.w	d4,-2(a5)
+	move.w	d2,-2(a5)
 DP_NotYMin:
-	cmp.w	(a5)+,d4
+	cmp.w	(a5)+,d2
 	ble.s	DP_NotYMax
-	move.w	d4,-2(a5)
+	move.w	d2,-2(a5)
 DP_NotYMax:
 
-	move.w	d3,d5			;X2
-	move.w	d4,d6			;Y2
-	move.w	d4,d7			;Y2
-	lea		DP_Edges(pc),a5
-	sub.w	d2,d7			;dy = Y2-Y1
+	move.l	d2,d5			;save X2,Y2
+	move.w	d2,d7			;Y2
+	lea		DP_Edges(pc),a6
+	sub.w	d1,d7			;dy = Y2-Y1
 	beq.s	DP_NoLine		;TODO: Remove this from data no need to draw horizontal lines
-	bpl.s	DP_NotRevered
-	lea		Scr3D_Height*2(a5),a5
+	bpl.s	DP_NotRevered	;is it top/down line
+	lea		Scr3D_Height*2(a6),a6
 	neg.w	d7				;Swap to draw line top to bottom
-	exg		d1,d3			;X1<->X2
-	exg		d2,d4			;Y1<->Y2
+	exg		d1,d2			;convert to top/down line X1,Y1<->X2,Y2
 DP_NotRevered:
-	sub.w	d1,d3			;dx = X2-X1
-	add.w	d2,d2			;Y1*2
-	lea		(a5,d2.w),a5	;Y1 Edge buffer offset
-	ext.l	d3
-	asl.l	#DP_FixPoint,d3
-	divs	d7,d3			;dx / dy
-	ext.l	d3
-	asl.l	#DP_FixPoint16,d3	;integert part to upper 16bits
-	move.w	d3,d4				;decimal part to lower 16bits
-	moveq	#0,d2
-	swap	d3
-	tst.w	d3
+	add.w	d1,d1			;Y1*2
+	lea		(a6,d1.w),a6	;Y1 Edge buffer offset
+	swap	d1				;get X1
+	swap	d2				;get X2
+	sub.w	d1,d2			;dx = X2-X1
+	ext.l	d2
+	asl.l	#DP_FixPoint,d2
+	divs	d7,d2			;dx / dy
+	moveq	#0,d3			;prepare decimal increment
+	ext.l	d2				;get result in long and check if negative slope
 	bpl.s	DP_NotNegativeInc
-	moveq	#-1,d2
+	moveq	#-1,d3			; decimal increment is negative
 DP_NotNegativeInc:
+	asl.l	#DP_FixPoint16,d2	;integert part to upper 16bits
+	move.w	d2,d4				;decimal part to lower 16bits
+	swap	d2
 	subq.w	#1,d7
 DP_NextLinePoint:
-	move.w	d1,(a5)+
-	add.w	d4,d2			; add decimal part for overflow
-	addx.w	d3,d1			; X1 + (dx / dy)
+	move.w	d1,(a6)+
+	add.w	d4,d3			; add decimal part for overflow
+	addx.w	d2,d1			; X1 + (dx / dy)
 	dbf		d7,DP_NextLinePoint
 
 DP_NoLine:
-	move.w	d5,d1
-	move.w	d6,d2
+	move.l	d5,d1
 	dbf		d0,DP_NextLine
 
 	move.w	#$00f0,$dff180
