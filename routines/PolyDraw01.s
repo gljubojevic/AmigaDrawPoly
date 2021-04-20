@@ -15,7 +15,7 @@ VI_NextYOffset:
 ; a1 - Object pointer
 DrawObject:
 	movem.l d0-a6,-(sp)
-	lea	Scr3D_YTable,a2
+	lea	Scr3D_YTable(pc),a2
 	move.l	20(a1),a3		;a3 - pointer to triangles
 	move.l	16(a1),a1		;a2 - ponter to rotated vertex
 DO_NextPoly:
@@ -55,7 +55,9 @@ DO_YMinMax:
 ; a1 - YTable offsets
 ; a4 - Line cords
 ; a4 - Min, Max Y
-DP_FixPoint=8	;interpolation precision
+DP_FixPoint=8					;interpolation precision
+DP_FixPoint16=16-DP_FixPoint	;shift to move to upper 16 bit
+DP_OnlyOutline=1				;Draw only outline no fill
 ;
 DrawPoly:
 	lea		DO_Lines(pc),a4
@@ -81,28 +83,34 @@ DP_NotYMax:
 	move.w	d4,d6			;Y2
 	move.w	d4,d7			;Y2
 	lea		DP_Edges(pc),a5
-	sub.w	d2,d7			;Y2-Y1
+	sub.w	d2,d7			;dy = Y2-Y1
 	beq.s	DP_NoLine		;TODO: Remove this from data no need to draw horizontal lines
 	bpl.s	DP_NotRevered
-	lea		Scr3D_Height*4(a5),a5
-	neg.w	d7
+	lea		Scr3D_Height*2(a5),a5
+	neg.w	d7				;Swap to draw line top to bottom
 	exg		d1,d3			;X1<->X2
 	exg		d2,d4			;Y1<->Y2
 DP_NotRevered:
-	sub.w	d1,d3			;X2-X1
-	add.w	d2,d2
-	add.w	d2,d2			;Y1*4
+	sub.w	d1,d3			;dx = X2-X1
+	add.w	d2,d2			;Y1*2
 	lea		(a5,d2.w),a5	;Y1 Edge buffer offset
 	ext.l	d3
-	ext.l	d1
-	asl.l	#DP_FixPoint,d1
 	asl.l	#DP_FixPoint,d3
-	divs	d7,d3			;(X2-X1) / (Y2-Y1)
+	divs	d7,d3			;dx / dy
 	ext.l	d3
+	asl.l	#DP_FixPoint16,d3	;integert part to upper 16bits
+	move.w	d3,d4				;decimal part to lower 16bits
+	moveq	#0,d2
+	swap	d3
+	tst.w	d3
+	bpl.s	DP_NotNegativeInc
+	moveq	#-1,d2
+DP_NotNegativeInc:
 	subq.w	#1,d7
 DP_NextLinePoint:
-	move.l	d1,(a5)+
-	add.l	d3,d1			; X1 + ((X2-X1) / (Y2-Y1))
+	move.w	d1,(a5)+
+	add.w	d4,d2			; add decimal part for overflow
+	addx.w	d3,d1			; X1 + (dx / dy)
 	dbf		d7,DP_NextLinePoint
 
 DP_NoLine:
@@ -110,6 +118,9 @@ DP_NoLine:
 	move.w	d6,d2
 	dbf		d0,DP_NextLine
 
+	move.w	#$00f0,$dff180
+
+	IF DP_OnlyOutline
 ; Draw outline
 	movem.w	DO_YMinMax(pc),d0-d1
 	sub.w	d0,d1
@@ -117,21 +128,18 @@ DP_NoLine:
 	add.w	d0,d0
 	move.w	(a2,d0.w),d2
 	lea		(a0,d2.w),a6
-	add.w	d0,d0
-	lea		DP_Edges(pc,d0.w),a4
-	lea		Scr3D_Height*4(a4),a5
+	lea		DP_Edges(pc,d0.w),a4	;Left edge
+	lea		Scr3D_Height*2(a4),a5	;Right edge
 	moveq	#7,d4
 HL_Next:
-	move.l	(a4)+,d2
-	asr.l	#DP_FixPoint,d2
+	move.w	(a4)+,d2
 	move.w	d2,d3
 	not.w	d3
 	and.w	d4,d3
 	lsr.w	#3,d2
 	bset	d3,(a6,d2.w)
 
-	move.l	(a5)+,d2
-	asr.l	#DP_FixPoint,d2
+	move.w	(a5)+,d2
 	move.w	d2,d3
 	not.w	d3
 	and.w	d4,d3
@@ -140,12 +148,13 @@ HL_Next:
 
 	lea		Scr3D_LBytes(a6),a6
 	dbf		d1,HL_Next
+	ENDIF
 
 	rts
 
 DP_Edges:
-	ds.l	Scr3D_Height	;X1 Left edges
-	ds.l	Scr3D_Height	;X2 Right edges
+	ds.w	Scr3D_Height	;X1 Left edges
+	ds.w	Scr3D_Height	;X2 Right edges
 
 ;put closer to routines
 Scr3D_YTable:
