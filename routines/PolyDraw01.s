@@ -57,6 +57,7 @@ DO_YMinMax:
 ; a4 - Min, Max Y
 DP_FixPoint=8					;interpolation precision
 DP_FixPoint16=16-DP_FixPoint	;shift to move to upper 16 bit
+DP_REPT_Edges=1					;Use REPT instaed of loop for edges
 DP_OnlyOutline=1				;Draw only outline no fill
 ;
 DrawPoly:
@@ -66,11 +67,11 @@ DrawPoly:
 	move.l	(a4)+,d1		;X1,Y1
 	move.w	d1,(a5)+		;Reset YMin
 	move.w	d1,(a5)+		;Reset YMax
+	subq.l	#4,a5			;Correct pointer YMin, YMax
 DP_NextLine:
 	move.l	(a4)+,d2		;X2,Y2
 
-	subq.l	#4,a5			;Check YMin, YMax
-	cmp.w	(a5)+,d2
+	cmp.w	(a5)+,d2		;Check YMin, YMax
 	bge.s	DP_NotYMin
 	move.w	d2,-2(a5)
 DP_NotYMin:
@@ -83,7 +84,7 @@ DP_NotYMax:
 	move.w	d2,d7			;Y2
 	lea		DP_Edges(pc),a6
 	sub.w	d1,d7			;dy = Y2-Y1
-	beq.s	DP_NoLine		;TODO: Remove this from data no need to draw horizontal lines
+	beq.w	DP_NoLine		;TODO: Remove this from data no need to draw horizontal lines
 	bpl.s	DP_NotRevered	;is it top/down line
 	lea		Scr3D_Height*2(a6),a6
 	neg.w	d7				;Swap to draw line top to bottom
@@ -102,32 +103,53 @@ DP_NotRevered:
 	bpl.s	DP_NotNegativeInc
 	moveq	#-1,d3			; decimal increment is negative
 DP_NotNegativeInc:
-	asl.l	#DP_FixPoint16,d2	;integert part to upper 16bits
-	move.w	d2,d4				;decimal part to lower 16bits
-	swap	d2
+	asl.l	#DP_FixPoint16,d2	;align decimal point 16bits
+	move.w	d2,d4			;decimal part
+	swap	d2				;whole part
+
+	move.w	#$00ff,$dff180
+
+	IF	DP_REPT_Edges
+	neg.w	d7
+	add.w	#Scr3D_Height,d7
+	add.w	d7,d7
+	move.w	d7,d6
+	add.w	d7,d7
+	add.w	d6,d7
+	jmp		(pc,d7.w)
+	REPT	256
+	move.w	d1,(a6)+
+	add.w	d4,d3			; add decimal part for overflow
+	addx.w	d2,d1			; X1 + (dx / dy)
+	ENDR
+
+	ELSE
 	subq.w	#1,d7
 DP_NextLinePoint:
 	move.w	d1,(a6)+
 	add.w	d4,d3			; add decimal part for overflow
 	addx.w	d2,d1			; X1 + (dx / dy)
 	dbf		d7,DP_NextLinePoint
+	ENDIF
 
 DP_NoLine:
 	move.l	d5,d1
+	subq.l	#4,a5			;Pointer to YMin, YMax
 	dbf		d0,DP_NextLine
 
 	move.w	#$00f0,$dff180
 
-	IF DP_OnlyOutline
-; Draw outline
-	movem.w	DO_YMinMax(pc),d0-d1
-	sub.w	d0,d1
+	movem.w	(a5)+,d0-d1		;YMin, YMax
+	sub.w	d0,d1			;dy = YMin - YMax
 	subq.w	#1,d1
 	add.w	d0,d0
-	move.w	(a2,d0.w),d2
-	lea		(a0,d2.w),a6
+	move.w	(a2,d0.w),d2			;Y Video offset
+	lea		(a0,d2.w),a6			;Y Video address
 	lea		DP_Edges(pc,d0.w),a4	;Left edge
 	lea		Scr3D_Height*2(a4),a5	;Right edge
+
+	IF DP_OnlyOutline
+; Draw outline
 	moveq	#7,d4
 HL_Next:
 	move.w	(a4)+,d2
