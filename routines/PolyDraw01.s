@@ -117,7 +117,7 @@ DP_NotNegativeInc:
 	add.w	d7,d7
 	add.w	d6,d7
 	jmp		(pc,d7.w)
-	REPT	256
+	REPT	256				;TODO: Fix rept to symbol
 	move.w	d1,(a6)+
 	add.w	d4,d3			; add decimal part for overflow
 	addx.w	d2,d1			; X1 + (dx / dy)
