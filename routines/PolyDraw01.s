@@ -1,13 +1,25 @@
 Scr3D_TablesInit:
-	movem.l	d0-d1/a0,-(sp)
-	lea		Scr3D_YTable,a0
+	movem.l	d0-d3/a0,-(sp)
+	lea		Scr3D_YTable(pc),a0
 	moveq	#0,d0
 	move.l	#Scr3D_Height-1,d1
 VI_NextYOffset:
 	move.w	d0,(a0)+
 	add.w	#Scr3D_WBytes*Scr3D_Bitmaps,d0
 	dbf		d1,VI_NextYOffset
-	movem.l	(sp)+,d0-d1/a0
+
+	lea		Scr3D_XMask(pc),a0
+	moveq	#0,d0
+	move.l	#Scr3D_Width-1,d1
+VI_NextXMask:
+	move.l	d0,d2
+	and.l	#$0f,d2
+	moveq.l	#-1,d3
+	lsr.w	d2,d3
+	move.w	d3,(a0)+
+	addq.l	#1,d0
+	dbf		d1,VI_NextXMask
+	movem.l	(sp)+,d0-d3/a0
 	rts
 
 ; Draw 3D object after transformation on screen
@@ -58,7 +70,7 @@ DO_YMinMax:
 DP_FixPoint=8					;interpolation precision
 DP_FixPoint16=16-DP_FixPoint	;shift to move to upper 16 bit
 DP_REPT_Edges=1					;Use REPT instaed of loop for edges
-DP_OnlyOutline=1				;Draw only outline no fill
+DP_OnlyOutline=0				;Draw only outline no fill
 ;
 DrawPoly:
 	lea		DO_Lines(pc),a4
@@ -117,7 +129,7 @@ DP_NotNegativeInc:
 	add.w	d7,d7
 	add.w	d6,d7
 	jmp		(pc,d7.w)
-	REPT	256				;TODO: Fix rept to symbol
+	REPT	Scr3D_Height
 	move.w	d1,(a6)+
 	add.w	d4,d3			; add decimal part for overflow
 	addx.w	d2,d1			; X1 + (dx / dy)
@@ -145,7 +157,8 @@ DP_NoLine:
 	add.w	d0,d0
 	move.w	(a2,d0.w),d2			;Y Video offset
 	lea		(a0,d2.w),a6			;Y Video address
-	lea		DP_Edges(pc,d0.w),a4	;Left edge
+	lea		DP_Edges(pc),a4			;Edges
+	adda.w	d0,a4					;Left edge
 	lea		Scr3D_Height*2(a4),a5	;Right edge
 
 	IF DP_OnlyOutline
@@ -168,6 +181,61 @@ HL_Next:
 
 	lea		Scr3D_LBytes(a6),a6
 	dbf		d1,HL_Next
+
+	ELSE
+; Draw horizontal lines
+	move.l	a3,-(sp)
+HL_Next:
+	movem.w	(a4)+,d2		;X1
+	movem.w	(a5)+,d3		;X2
+
+	move.w	d2,d6
+	add.w	d6,d6
+	move.w	d3,d7
+	add.w	d7,d7
+	lea		Scr3D_XMask(pc),a3
+	move.w	(a3,d6.w),d6	;Left mask
+	move.w	(a3,d7.w),d7	;Right mask
+	not.w	d7
+
+	lsr.w	#4,d2	;Left offset
+	add.w	d2,d2
+
+	lsr.w	#4,d3	;Right offset
+	add.w	d3,d3
+
+	cmp.w	d2,d3
+	bne.s	HL_NotSameLong
+	eor.w	d6,d7			;Start and end on same offset
+	not.w	d7
+	or.w	d7,(a6,d2.w)	;TODO: Colors
+	bra.s	HL_NoLine
+
+HL_NotSameLong:
+	lea		(a6,d2.w),a3
+	or.w	d6,(a3)+
+	subq.w	#2,d3
+	cmp.w	d2,d3
+	beq.s	HL_LastLong
+	moveq	#-1,d5		;$ffffffff - fill patern
+	sub.w	d2,d3
+	lsr.w	#1,d3
+	subq.w	#1,d3
+	neg.w	d3
+	add.w	#(Scr3D_WBytes/2)-1,d3
+	add.w	d3,d3
+	jmp		(pc,d3.w)	;must have vasm -nowarn=2069
+HL_NextLong:
+	REPT	(Scr3D_WBytes/2)-1
+	or.w	d5,(a3)+	;TODO: Colors
+	ENDR
+HL_LastLong:
+	or.w	d7,(a3)+	;TODO: Colors
+
+HL_NoLine:
+	lea		Scr3D_LBytes(a6),a6
+	dbf		d1,HL_Next
+	move.l	(sp)+,a3
 	ENDIF
 
 	rts
@@ -177,5 +245,7 @@ DP_Edges:
 	ds.w	Scr3D_Height	;X2 Right edges
 
 ;put closer to routines
+Scr3D_XMask:
+	ds.w	Scr3D_Width,0
 Scr3D_YTable:
 	ds.w	Scr3D_Height,0
