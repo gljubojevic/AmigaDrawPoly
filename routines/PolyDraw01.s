@@ -128,7 +128,7 @@ DP_NotNegativeInc:
 	move.w	d7,d6
 	add.w	d7,d7
 	add.w	d6,d7
-	jmp		(pc,d7.w)
+	jmp		(pc,d7.w)		;must have vasm -nowarn=2069
 	REPT	Scr3D_Height
 	move.w	d1,(a6)+
 	add.w	d4,d3			; add decimal part for overflow
@@ -181,6 +181,7 @@ HL_Next:
 
 	lea		Scr3D_LBytes(a6),a6
 	dbf		d1,HL_Next
+	rts
 
 	ELSE
 ; Draw horizontal lines
@@ -209,7 +210,10 @@ HL_Next:
 	eor.w	d6,d7			;Start and end on same offset
 	not.w	d7
 	or.w	d7,(a6,d2.w)	;TODO: Colors
-	bra.s	HL_NoLine
+	lea		Scr3D_LBytes(a6),a6
+	dbf		d1,HL_Next
+	move.l	(sp)+,a3
+	rts
 
 HL_NotSameLong:
 	lea		(a6,d2.w),a3
@@ -232,13 +236,11 @@ HL_NextLong:
 HL_LastLong:
 	or.w	d7,(a3)+	;TODO: Colors
 
-HL_NoLine:
 	lea		Scr3D_LBytes(a6),a6
 	dbf		d1,HL_Next
 	move.l	(sp)+,a3
-	ENDIF
-
 	rts
+	ENDIF
 
 DP_Edges:
 	ds.w	Scr3D_Height	;X1 Left edges
