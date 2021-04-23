@@ -43,6 +43,7 @@ DO_NextPoly:
 	move.l	d1,(a4)+
 	move.l	d2,(a4)+
 	move.l	d0,(a4)+
+	move.l	#-3,(a4)+	; color negative number as marker to stop calculating edges
 	; TODO: Clippping
 	bsr.s	DrawPoly
 	bra.s	DO_NextPoly
@@ -55,6 +56,7 @@ DO_Done:
 ; X2,Y2
 ; X3,Y3
 ; X1,Y1 - must end with first cord to close poly
+; color - negative number as marker to stop calculating edges
 DO_Lines:
 	ds.l	8
 
@@ -69,20 +71,17 @@ DO_YMinMax:
 ; a4 - Min, Max Y
 DP_FixPoint=8					;interpolation precision
 DP_FixPoint16=16-DP_FixPoint	;shift to move to upper 16 bit
-DP_REPT_Edges=1					;Use REPT instaed of loop for edges
-DP_OnlyOutline=0				;Draw only outline no fill
 ;
 DrawPoly:
 	lea		DO_Lines(pc),a4
 	lea		DO_YMinMax(pc),a5
-	moveq	#3-1,d0			;hardcoded for now
 	move.l	(a4)+,d1		;X1,Y1
 	move.w	d1,(a5)+		;Reset YMin
 	move.w	d1,(a5)+		;Reset YMax
-	subq.l	#4,a5			;Correct pointer YMin, YMax
+	move.l	(a4)+,d2		;X2,Y2 NOTE: Must be at least 1 line to draw
 DP_NextLine:
-	move.l	(a4)+,d2		;X2,Y2
 
+	subq.l	#4,a5			;Pointer to YMin, YMax
 	cmp.w	(a5)+,d2		;Check YMin, YMax
 	bge.s	DP_NotYMin
 	move.w	d2,-2(a5)
@@ -121,7 +120,6 @@ DP_NotNegativeInc:
 
 	move.w	#$00ff,$dff180
 
-	IF	DP_REPT_Edges
 	neg.w	d7
 	add.w	#Scr3D_Height,d7
 	add.w	d7,d7
@@ -135,22 +133,15 @@ DP_NotNegativeInc:
 	addx.w	d2,d1			; X1 + (dx / dy)
 	ENDR
 
-	ELSE
-	subq.w	#1,d7
-DP_NextLinePoint:
-	move.w	d1,(a6)+
-	add.w	d4,d3			; add decimal part for overflow
-	addx.w	d2,d1			; X1 + (dx / dy)
-	dbf		d7,DP_NextLinePoint
-	ENDIF
-
 DP_NoLine:
 	move.l	d5,d1
-	subq.l	#4,a5			;Pointer to YMin, YMax
-	dbf		d0,DP_NextLine
+	move.l	(a4)+,d2		;X2,Y2 or color
+	bpl.w	DP_NextLine
 
+DP_FillHLines:
 	move.w	#$00f0,$dff180
 
+	subq.l	#4,a5			;Pointer to YMin, YMax
 	movem.w	(a5)+,d0-d1		;YMin, YMax
 	sub.w	d0,d1			;dy = YMin - YMax
 	subq.w	#1,d1
@@ -161,29 +152,6 @@ DP_NoLine:
 	adda.w	d0,a4					;Left edge
 	lea		Scr3D_Height*2(a4),a5	;Right edge
 
-	IF DP_OnlyOutline
-; Draw outline
-	moveq	#7,d4
-HL_Next:
-	move.w	(a4)+,d2
-	move.w	d2,d3
-	not.w	d3
-	and.w	d4,d3
-	lsr.w	#3,d2
-	bset	d3,(a6,d2.w)
-
-	move.w	(a5)+,d2
-	move.w	d2,d3
-	not.w	d3
-	and.w	d4,d3
-	lsr.w	#3,d2
-	bset	d3,(a6,d2.w)
-
-	lea		Scr3D_LBytes(a6),a6
-	dbf		d1,HL_Next
-	rts
-
-	ELSE
 ; Draw horizontal lines
 	move.l	a3,-(sp)
 HL_Next:
@@ -240,7 +208,6 @@ HL_LastLong:
 	dbf		d1,HL_Next
 	move.l	(sp)+,a3
 	rts
-	ENDIF
 
 DP_Edges:
 	ds.w	Scr3D_Height	;X1 Left edges
