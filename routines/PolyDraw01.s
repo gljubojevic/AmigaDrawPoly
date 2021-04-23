@@ -80,6 +80,7 @@ DrawPoly:
 	move.w	d1,(a5)+		;Reset YMax
 	move.l	(a4)+,d2		;X2,Y2 NOTE: Must be at least 1 line to draw
 DP_NextLine:
+	move.w	#$0f00,$dff180
 
 	subq.l	#4,a5			;Pointer to YMin, YMax
 	cmp.w	(a5)+,d2		;Check YMin, YMax
@@ -95,7 +96,7 @@ DP_NotYMax:
 	move.w	d2,d7			;Y2
 	lea		DP_Edges(pc),a6
 	sub.w	d1,d7			;dy = Y2-Y1
-	beq.w	DP_NoLine		;TODO: Remove this from data no need to draw horizontal lines
+	;beq.w	DP_NoLine		;TODO: Remove this from data no need to draw horizontal lines
 	bpl.s	DP_NotRevered	;is it top/down line
 	lea		Scr3D_Height*2(a6),a6
 	neg.w	d7				;Swap to draw line top to bottom
@@ -109,16 +110,14 @@ DP_NotRevered:
 	ext.l	d2
 	asl.l	#DP_FixPoint,d2
 	divs	d7,d2			;dx / dy
-	moveq	#0,d3			;prepare decimal increment
 	ext.l	d2				;get result in long and check if negative slope
-	bpl.s	DP_NotNegativeInc
+	bpl.w	DP_NotNegativeInc
+
+	move.w	#$00ff,$dff180
 	moveq	#-1,d3			; decimal increment is negative
-DP_NotNegativeInc:
 	asl.l	#DP_FixPoint16,d2	;align decimal point 16bits
 	move.w	d2,d4			;decimal part
 	swap	d2				;whole part
-
-	move.w	#$00ff,$dff180
 
 	neg.w	d7
 	add.w	#Scr3D_Height,d7
@@ -132,11 +131,30 @@ DP_NotNegativeInc:
 	add.w	d4,d3			; add decimal part for overflow
 	addx.w	d2,d1			; X1 + (dx / dy)
 	ENDR
+	move.l	d5,d1
+	move.l	(a4)+,d2		;X2,Y2 or color
+	bpl.w	DP_NextLine		;not color do next line
+	bra.w	DP_FillHLines	;done with lines
+
+DP_NotNegativeInc:
+	move.w	#$00ff,$dff180
+	asl.l	#DP_FixPoint16,d2	;align decimal point 16bits
+	swap	d2					;decimal in upper 16bit, whole part lower 16bit
+	ext.l	d1
+	neg.w	d7
+	add.w	#Scr3D_Height,d7
+	add.w	d7,d7
+	add.w	d7,d7
+	jmp		(pc,d7.w)		;must have vasm -nowarn=2069
+	REPT	Scr3D_Height
+	move.w	d1,(a6)+
+	addx.l	d2,d1			; X1 + (dx / dy)
+	ENDR
 
 DP_NoLine:
 	move.l	d5,d1
 	move.l	(a4)+,d2		;X2,Y2 or color
-	bpl.w	DP_NextLine
+	bpl.w	DP_NextLine		;not color do next line
 
 DP_FillHLines:
 	move.w	#$00f0,$dff180
