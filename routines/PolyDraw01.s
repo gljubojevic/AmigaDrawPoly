@@ -114,22 +114,19 @@ DP_NotRevered:
 	bpl.w	DP_NotNegativeInc
 
 	move.w	#$00ff,$dff180
-	moveq	#-1,d3			; decimal increment is negative
 	asl.l	#DP_FixPoint16,d2	;align decimal point 16bits
-	move.w	d2,d4			;decimal part
-	swap	d2				;whole part
+	neg.l	d2				;make positive so we can use subx
+	swap	d2				;decimal in upper 16bit, whole part lower 16bit
+	ext.l	d1
 
 	neg.w	d7
 	add.w	#Scr3D_Height,d7
 	add.w	d7,d7
-	move.w	d7,d6
 	add.w	d7,d7
-	add.w	d6,d7
 	jmp		(pc,d7.w)		;must have vasm -nowarn=2069
 	REPT	Scr3D_Height
 	move.w	d1,(a6)+
-	add.w	d4,d3			; add decimal part for overflow
-	addx.w	d2,d1			; X1 + (dx / dy)
+	subx.l	d2,d1			; X1 - (dx / dy)
 	ENDR
 	move.l	d5,d1
 	move.l	(a4)+,d2		;X2,Y2 or color
@@ -141,6 +138,7 @@ DP_NotNegativeInc:
 	asl.l	#DP_FixPoint16,d2	;align decimal point 16bits
 	swap	d2					;decimal in upper 16bit, whole part lower 16bit
 	ext.l	d1
+
 	neg.w	d7
 	add.w	#Scr3D_Height,d7
 	add.w	d7,d7
