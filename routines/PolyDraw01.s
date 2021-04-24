@@ -106,10 +106,10 @@ DP_NotRevered:
 	add.w	d1,d1			;Y1*2
 	lea		(a6,d1.w),a6	;Y1 Edge buffer offset
 	swap	d1				;get X1
-	swap	d2				;get X2
-	sub.w	d1,d2			;dx = X2-X1
-	ext.l	d2
 	ext.l	d1
+	swap	d2				;get X2
+	ext.l	d2
+	sub.l	d1,d2			;dx = X2-X1
 	asl.l	#DP_FixPoint,d2
 	divs	d7,d2			;dx / dy
 	ext.l	d2				;get result in long and check if negative slope
