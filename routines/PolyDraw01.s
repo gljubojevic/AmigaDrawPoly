@@ -219,7 +219,7 @@ HL_NotSameLong:
 	or.w	d6,(a3)+
 	subq.w	#2,d3
 	cmp.w	d2,d3
-	beq.s	HL_LastLong
+	beq.s	HL_LastWord
 	moveq	#-1,d5		;$ffffffff - fill patern
 	sub.w	d2,d3
 	lsr.w	#1,d3
@@ -238,7 +238,7 @@ HL_NextWord:
 	or.w	d5,(a3)+	;TODO: Colors
 	dbf		d3,HL_NextWord
 	ENDIF
-HL_LastLong:
+HL_LastWord:
 	or.w	d7,(a3)+	;TODO: Colors
 
 	lea		Scr3D_LBytes(a6),a6
