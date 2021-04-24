@@ -71,6 +71,7 @@ DO_YMinMax:
 ; a4 - Min, Max Y
 DP_FixPoint=8					;interpolation precision
 DP_FixPoint16=16-DP_FixPoint	;shift to move to upper 16 bit
+DP_UseREPT=1					;Use REPT instead of dbf
 ;
 DrawPoly:
 	lea		DO_Lines(pc),a4
@@ -108,17 +109,18 @@ DP_NotRevered:
 	swap	d2				;get X2
 	sub.w	d1,d2			;dx = X2-X1
 	ext.l	d2
+	ext.l	d1
 	asl.l	#DP_FixPoint,d2
 	divs	d7,d2			;dx / dy
 	ext.l	d2				;get result in long and check if negative slope
+	asl.l	#DP_FixPoint16,d2	;align decimal point 16bits
 	bpl.w	DP_NotNegativeInc
 
 	move.w	#$00ff,$dff180
-	asl.l	#DP_FixPoint16,d2	;align decimal point 16bits
 	neg.l	d2				;make positive so we can use subx
 	swap	d2				;decimal in upper 16bit, whole part lower 16bit
-	ext.l	d1
 
+	IF		DP_UseREPT
 	neg.w	d7
 	add.w	#Scr3D_Height,d7
 	add.w	d7,d7
@@ -128,6 +130,13 @@ DP_NotRevered:
 	move.w	d1,(a6)+
 	subx.l	d2,d1			; X1 - (dx / dy)
 	ENDR
+	ELSE
+	subq.w	#1,d7
+DP_DXNegative:
+	move.w	d1,(a6)+
+	subx.l	d2,d1			; X1 - (dx / dy)
+	dbf		d7,DP_DXNegative
+	ENDIF
 	move.l	d5,d1
 	move.l	(a4)+,d2		;X2,Y2 or color
 	bpl.w	DP_NextLine		;not color do next line
@@ -135,10 +144,9 @@ DP_NotRevered:
 
 DP_NotNegativeInc:
 	move.w	#$00ff,$dff180
-	asl.l	#DP_FixPoint16,d2	;align decimal point 16bits
-	swap	d2					;decimal in upper 16bit, whole part lower 16bit
-	ext.l	d1
+	swap	d2				;decimal in upper 16bit, whole part lower 16bit
 
+	IF		DP_UseREPT
 	neg.w	d7
 	add.w	#Scr3D_Height,d7
 	add.w	d7,d7
@@ -148,6 +156,13 @@ DP_NotNegativeInc:
 	move.w	d1,(a6)+
 	addx.l	d2,d1			; X1 + (dx / dy)
 	ENDR
+	ELSE
+	subq.w	#1,d7
+DP_DXPositive:
+	move.w	d1,(a6)+
+	addx.l	d2,d1			; X1 + (dx / dy)
+	dbf		d7,DP_DXPositive
+	ENDIF
 
 DP_NoLine:
 	move.l	d5,d1
@@ -209,14 +224,20 @@ HL_NotSameLong:
 	sub.w	d2,d3
 	lsr.w	#1,d3
 	subq.w	#1,d3
+
+	IF		DP_UseREPT
 	neg.w	d3
 	add.w	#(Scr3D_WBytes/2)-1,d3
 	add.w	d3,d3
 	jmp		(pc,d3.w)	;must have vasm -nowarn=2069
-HL_NextLong:
 	REPT	(Scr3D_WBytes/2)-1
 	or.w	d5,(a3)+	;TODO: Colors
 	ENDR
+	ELSE
+HL_NextWord:
+	or.w	d5,(a3)+	;TODO: Colors
+	dbf		d3,HL_NextWord
+	ENDIF
 HL_LastLong:
 	or.w	d7,(a3)+	;TODO: Colors
 
