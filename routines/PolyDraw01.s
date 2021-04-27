@@ -31,24 +31,44 @@ DrawObject:
 	move.l	20(a1),a3		;a3 - pointer to triangles
 	move.l	16(a1),a1		;a2 - ponter to rotated vertex
 DO_NextPoly:
-	move.w	(a3)+,d3		; d3 - color
-	bmi.s	DO_Done			; no more triangles
-	movem.w	(a3)+,d0-d2		; vextex pointers
+	move.w	(a3),d0			; vtx1 idx
+	bmi		DO_Done			; end of polys
+	movem.w	2(a3),d1-d2		; vtx2, vtx3 idx
 	move.l	(a1,d0.w),d0	; d0 X0,Y0
 	move.l	(a1,d1.w),d1	; d1 X1,Y1
 	move.l	(a1,d2.w),d2	; d2 X2,Y2
-	; TODO: Check visible
-	lea		DO_Lines(pc),a4	;Just temp copy for now
-	move.l	d0,(a4)+
-	move.l	d1,(a4)+
-	move.l	d2,(a4)+
-	move.l	d0,(a4)+
-	move.l	#-3,(a4)+	; color negative number as marker to stop calculating edges
-	; TODO: Clippping
+	bsr		DO_IsVisible
+
+	;process lines for poly
+	lea		DO_Lines(pc),a4
+	movem.w	(a3)+,d0-d1		;vtx1,vtx2
+	move.l	(a1,d0.w),d0	;d0 X0,Y0
+	move.l	(a1,d1.w),d1	;d1 X1,Y1
+	;TODO: Clip line
+	move.l	d0,(a4)+		; First line to draw
+	move.l	d1,(a4)+		;
+DO_NextLine:
+	move.l	d1,d0			;Last point to first
+	move.w	(a3)+,d1
+	bmi.s	DO_Draw			; Color is read
+	move.l	(a1,d1.w),d1	; d1 X1,Y1
+	;TODO: Clip line
+	move.l	d1,(a4)+		;last clipped cord
+	bra		DO_NextLine
+DO_Draw:
+	ext.l	d1
+	move.l	d1,(a4)+		;Store color to finish poly
 	bsr.s	DrawPoly
 	bra.s	DO_NextPoly
 DO_Done:
 	movem.l (sp)+,d0-a6
+	rts
+
+;TODO: Check visible
+; d0 X0,Y0
+; d1 X1,Y1
+; d2 X2,Y2
+DO_IsVisible:
 	rts
 
 ; Coordinate of polygon lines e.g.

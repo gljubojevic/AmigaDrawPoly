@@ -152,7 +152,7 @@ VideoColors:
 ;***************************************************
 	SECTION	"Intro data",DATA_F
 ;	INCLUDE "routines/CubeTriangle.s"
-	INCLUDE "routines/Triangle.s"
+	INCLUDE "3dobj/Triangle.s"
 
 ;***************************************************
 ;Chip Data
