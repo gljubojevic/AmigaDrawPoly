@@ -27,13 +27,12 @@ VI_NextXMask:
 ; a1 - Object pointer
 DrawObject:
 	movem.l d0-a6,-(sp)
-	lea	Scr3D_YTable(pc),a2
-	move.l	20(a1),a3		;a3 - pointer to triangles
+	move.l	20(a1),a2		;a2 - pointer to triangles
 	move.l	16(a1),a1		;a2 - ponter to rotated vertex
 DO_NextPoly:
-	move.w	(a3),d0			; vtx1 idx
+	move.w	(a2),d0			; vtx1 idx
 	bmi		DO_Done			; end of polys
-	movem.w	2(a3),d1-d2		; vtx2, vtx3 idx
+	movem.w	2(a2),d1-d2		; vtx2, vtx3 idx
 	move.l	(a1,d0.w),d0	; d0 X0,Y0
 	move.l	(a1,d1.w),d1	; d1 X1,Y1
 	move.l	(a1,d2.w),d2	; d2 X2,Y2
@@ -41,7 +40,7 @@ DO_NextPoly:
 
 	;process lines for poly
 	lea		DO_Lines(pc),a4
-	movem.w	(a3)+,d0-d1		;vtx1,vtx2
+	movem.w	(a2)+,d0-d1		;vtx1,vtx2
 	move.l	(a1,d0.w),d0	;d0 X0,Y0
 	move.l	(a1,d1.w),d1	;d1 X1,Y1
 	;TODO: Clip line
@@ -49,7 +48,7 @@ DO_NextPoly:
 	move.l	d1,(a4)+		;
 DO_NextLine:
 	move.l	d1,d0			;Last point to first
-	move.w	(a3)+,d1
+	move.w	(a2)+,d1
 	bmi.s	DO_Draw			; Color is read
 	move.l	(a1,d1.w),d1	; d1 X1,Y1
 	;TODO: Clip line
@@ -58,7 +57,11 @@ DO_NextLine:
 DO_Draw:
 	ext.l	d1
 	move.l	d1,(a4)+		;Store color to finish poly
+
+	movem.l	a1-a2,-(sp)
 	bsr.s	DrawPoly
+	movem.l	(sp)+,a1-a2
+
 	bra.s	DO_NextPoly
 DO_Done:
 	movem.l (sp)+,d0-a6
@@ -86,7 +89,6 @@ DO_YMinMax:
 	dc.w	0	;YMax
 
 ; a0 - Video memory
-; a1 - YTable offsets
 ; a4 - Line cords
 ; a4 - Min, Max Y
 DP_FixPoint=8					;interpolation precision
@@ -197,6 +199,7 @@ DP_FillHLines:
 	sub.w	d0,d1			;dy = YMin - YMax
 	subq.w	#1,d1
 	add.w	d0,d0
+	lea		Scr3D_YTable(pc),a2
 	move.w	(a2,d0.w),d2			;Y Video offset
 	lea		(a0,d2.w),a6			;Y Video address
 	lea		DP_Edges(pc),a4			;Edges
@@ -204,7 +207,6 @@ DP_FillHLines:
 	lea		Scr3D_Height*2(a4),a5	;Right edge
 
 ; Draw horizontal lines
-	move.l	a3,-(sp)
 HL_Next:
 	movem.w	(a4)+,d2		;X1
 	movem.w	(a5)+,d3		;X2
@@ -231,7 +233,6 @@ HL_Next:
 	or.w	d7,(a6,d2.w)	;TODO: Colors
 	lea		Scr3D_LBytes(a6),a6
 	dbf		d1,HL_Next
-	move.l	(sp)+,a3
 	rts
 
 HL_NotSameLong:
@@ -263,7 +264,7 @@ HL_LastWord:
 
 	lea		Scr3D_LBytes(a6),a6
 	dbf		d1,HL_Next
-	move.l	(sp)+,a3
+;	move.l	(sp)+,a3
 	rts
 
 DP_Edges:
