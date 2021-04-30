@@ -89,30 +89,28 @@ DO_YMinMax:
 	dc.w	0	;YMax
 
 ; a0 - Video memory
-; a4 - Line cords
-; a4 - Min, Max Y
 DP_FixPoint=8					;interpolation precision
 DP_FixPoint16=16-DP_FixPoint	;shift to move to upper 16 bit
 DP_UseREPT=1					;Use REPT instead of dbf
 ;
 DrawPoly:
-	lea		DO_Lines(pc),a4
-	lea		DO_YMinMax(pc),a5
-	move.l	(a4)+,d1		;X1,Y1
-	move.w	d1,(a5)+		;Reset YMin
-	move.w	d1,(a5)+		;Reset YMax
-	move.l	(a4)+,d2		;X2,Y2 NOTE: Must be at least 1 line to draw
+	lea		DO_YMinMax(pc),a1
+	lea		DO_Lines(pc),a2
+	move.l	(a2)+,d1		;X1,Y1
+	move.w	d1,(a1)+		;Reset YMin
+	move.w	d1,(a1)+		;Reset YMax
+	move.l	(a2)+,d2		;X2,Y2 NOTE: Must be at least 1 line to draw
 DP_NextLine:
 	move.w	#$0f00,$dff180
 
-	subq.l	#4,a5			;Pointer to YMin, YMax
-	cmp.w	(a5)+,d2		;Check YMin, YMax
+	subq.l	#4,a1			;Pointer to YMin, YMax
+	cmp.w	(a1)+,d2		;Check YMin, YMax
 	bge.s	DP_NotYMin
-	move.w	d2,-2(a5)
+	move.w	d2,-2(a1)
 DP_NotYMin:
-	cmp.w	(a5)+,d2
+	cmp.w	(a1)+,d2
 	ble.s	DP_NotYMax
-	move.w	d2,-2(a5)
+	move.w	d2,-2(a1)
 DP_NotYMax:
 
 	move.l	d2,d5			;save X2,Y2
@@ -160,7 +158,7 @@ DP_DXNegative:
 	dbf		d7,DP_DXNegative
 	ENDIF
 	move.l	d5,d1
-	move.l	(a4)+,d2		;X2,Y2 or color
+	move.l	(a2)+,d2		;X2,Y2 or color
 	bpl.w	DP_NextLine		;not color do next line
 	bra.w	DP_FillHLines	;done with lines
 
@@ -188,14 +186,14 @@ DP_DXPositive:
 
 DP_NoLine:
 	move.l	d5,d1
-	move.l	(a4)+,d2		;X2,Y2 or color
+	move.l	(a2)+,d2		;X2,Y2 or color
 	bpl.w	DP_NextLine		;not color do next line
 
 DP_FillHLines:
 	move.w	#$00f0,$dff180
 
-	subq.l	#4,a5			;Pointer to YMin, YMax
-	movem.w	(a5)+,d0-d1		;YMin, YMax
+	subq.l	#4,a1			;Pointer to YMin, YMax
+	movem.w	(a1)+,d0-d1		;YMin, YMax
 	sub.w	d0,d1			;dy = YMin - YMax
 	subq.w	#1,d1
 	add.w	d0,d0
@@ -208,8 +206,8 @@ DP_FillHLines:
 
 ; Draw horizontal lines
 HL_Next:
-	movem.w	(a4)+,d2		;X1
-	movem.w	(a5)+,d3		;X2
+	move.w	(a4)+,d2		;X1
+	move.w	(a5)+,d3		;X2
 
 	move.w	d2,d6
 	add.w	d6,d6
