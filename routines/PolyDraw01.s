@@ -91,7 +91,6 @@ DO_YMinMax:
 ; a0 - Video memory
 DP_FixPoint=8					;interpolation precision
 DP_FixPoint16=16-DP_FixPoint	;shift to move to upper 16 bit
-DP_UseREPT=1					;Use REPT instead of dbf
 ;
 DrawPoly:
 	lea		DO_YMinMax(pc),a1
@@ -140,7 +139,6 @@ DP_NotRevered:
 	neg.l	d2				;make positive so we can use subx
 	swap	d2				;decimal in upper 16bit, whole part lower 16bit
 
-	IF		DP_UseREPT
 	neg.w	d7
 	add.w	#Scr3D_Height,d7
 	add.w	d7,d7
@@ -150,13 +148,7 @@ DP_NotRevered:
 	move.w	d1,(a3)+
 	subx.l	d2,d1			; X1 - (dx / dy)
 	ENDR
-	ELSE
-	subq.w	#1,d7
-DP_DXNegative:
-	move.w	d1,(a3)+
-	subx.l	d2,d1			; X1 - (dx / dy)
-	dbf		d7,DP_DXNegative
-	ENDIF
+
 	move.l	d5,d1
 	move.l	(a2)+,d2		;X2,Y2 or color
 	bpl.w	DP_NextLine		;not color do next line
@@ -166,7 +158,6 @@ DP_NotNegativeInc:
 	move.w	#$00ff,$dff180
 	swap	d2				;decimal in upper 16bit, whole part lower 16bit
 
-	IF		DP_UseREPT
 	neg.w	d7
 	add.w	#Scr3D_Height,d7
 	add.w	d7,d7
@@ -176,13 +167,6 @@ DP_NotNegativeInc:
 	move.w	d1,(a3)+
 	addx.l	d2,d1			; X1 + (dx / dy)
 	ENDR
-	ELSE
-	subq.w	#1,d7
-DP_DXPositive:
-	move.w	d1,(a3)+
-	addx.l	d2,d1			; X1 + (dx / dy)
-	dbf		d7,DP_DXPositive
-	ENDIF
 
 DP_NoLine:
 	move.l	d5,d1
@@ -247,7 +231,6 @@ HL_NotSameLong:
 	lsr.w	#1,d3
 	subq.w	#1,d3
 
-	IF		DP_UseREPT
 	neg.w	d3
 	add.w	#(Scr3D_WBytes/2)-1,d3
 	add.w	d3,d3
@@ -255,11 +238,6 @@ HL_NotSameLong:
 	REPT	(Scr3D_WBytes/2)-1
 	or.w	d5,(a4)+	;TODO: Colors
 	ENDR
-	ELSE
-HL_NextWord:
-	or.w	d5,(a4)+	;TODO: Colors
-	dbf		d3,HL_NextWord
-	ENDIF
 HL_LastWord:
 	or.w	d7,(a4)+	;TODO: Colors
 
