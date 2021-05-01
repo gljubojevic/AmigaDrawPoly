@@ -192,6 +192,9 @@ DP_FillHLines:
 	adda.w	d1,a1					;Left edge start
 	adda.w	d1,a2					;Right edge start
 
+	moveq	#-1,d5		;$ffffffff - fill pattern
+	moveq	#0,d6		;$00000000 - fill pattern
+
 ; Draw horizontal lines
 HL_Next:
 	move.w	(a1)+,d2		;X1
@@ -213,7 +216,7 @@ HL_Next:
 	add.w	d3,d3
 
 	cmp.w	d2,d3
-	bne.s	HL_NotSameLong
+	bne.s	HL_NotSameWord
 	eor.w	d6,d7			;Start and end on same offset
 	not.w	d7
 	or.w	d7,(a3,d2.w)	;TODO: Colors
@@ -221,13 +224,12 @@ HL_Next:
 	dbf		d0,HL_Next
 	rts
 
-HL_NotSameLong:
+HL_NotSameWord:
 	lea		(a3,d2.w),a4
 	or.w	d6,(a4)+
 	subq.w	#2,d3
 	cmp.w	d2,d3
 	beq.s	HL_LastWord
-	moveq	#-1,d5		;$ffffffff - fill patern
 	sub.w	d2,d3
 	lsr.w	#1,d3
 	subq.w	#1,d3
@@ -237,7 +239,7 @@ HL_NotSameLong:
 	add.w	d3,d3
 	jmp		(pc,d3.w)	;must have vasm -nowarn=2069
 	REPT	(Scr3D_WBytes/2)-1
-	or.w	d5,(a4)+	;TODO: Colors
+	move.w	d5,(a4)+	;TODO: Colors
 	ENDR
 HL_LastWord:
 	or.w	d7,(a4)+	;TODO: Colors
