@@ -83,8 +83,8 @@ DO_IsVisible:
 DO_Lines:
 	ds.l	8
 
-; Min and Max Y coord of poly
-DO_YMinMax:
+; Max and Min Y coord of poly
+DO_YMaxMin:
 	dc.w	0	;YMax
 	dc.w	0	;YMin
 
@@ -95,7 +95,7 @@ DP_FixPoint16=16-DP_FixPoint	;shift to move to upper 16 bit
 DrawPoly:
 	lea		DP_Edges(pc),a1			;Left edges pointer 
 	lea		Scr3D_Height*2(a1),a2	;Right edges pointer
-	lea		DO_YMinMax(pc),a3
+	lea		DO_YMaxMin(pc),a3
 	lea		DO_Lines(pc),a4
 	move.l	(a4)+,d1		;X1,Y1
 	move.w	d1,(a3)+		;Reset YMax
