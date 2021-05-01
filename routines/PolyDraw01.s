@@ -115,16 +115,16 @@ DP_NotYMax:
 
 	move.l	d2,d5			;save X2,Y2
 	move.w	d2,d7			;Y2
-	lea		DP_Edges(pc),a6
+	lea		DP_Edges(pc),a3
 	sub.w	d1,d7			;dy = Y2-Y1
 	;beq.w	DP_NoLine		;TODO: Remove this from data no need to draw horizontal lines
 	bpl.s	DP_NotRevered	;is it top/down line
-	lea		Scr3D_Height*2(a6),a6
+	lea		Scr3D_Height*2(a3),a3
 	neg.w	d7				;Swap to draw line top to bottom
 	exg		d1,d2			;convert to top/down line X1,Y1<->X2,Y2
 DP_NotRevered:
 	add.w	d1,d1			;Y1*2
-	lea		(a6,d1.w),a6	;Y1 Edge buffer offset
+	lea		(a3,d1.w),a3	;Y1 Edge buffer offset
 	swap	d1				;get X1
 	ext.l	d1
 	swap	d2				;get X2
@@ -147,13 +147,13 @@ DP_NotRevered:
 	add.w	d7,d7
 	jmp		(pc,d7.w)		;must have vasm -nowarn=2069
 	REPT	Scr3D_Height
-	move.w	d1,(a6)+
+	move.w	d1,(a3)+
 	subx.l	d2,d1			; X1 - (dx / dy)
 	ENDR
 	ELSE
 	subq.w	#1,d7
 DP_DXNegative:
-	move.w	d1,(a6)+
+	move.w	d1,(a3)+
 	subx.l	d2,d1			; X1 - (dx / dy)
 	dbf		d7,DP_DXNegative
 	ENDIF
@@ -173,13 +173,13 @@ DP_NotNegativeInc:
 	add.w	d7,d7
 	jmp		(pc,d7.w)		;must have vasm -nowarn=2069
 	REPT	Scr3D_Height
-	move.w	d1,(a6)+
+	move.w	d1,(a3)+
 	addx.l	d2,d1			; X1 + (dx / dy)
 	ENDR
 	ELSE
 	subq.w	#1,d7
 DP_DXPositive:
-	move.w	d1,(a6)+
+	move.w	d1,(a3)+
 	addx.l	d2,d1			; X1 + (dx / dy)
 	dbf		d7,DP_DXPositive
 	ENDIF
@@ -197,25 +197,25 @@ DP_FillHLines:
 	sub.w	d0,d1			;dy = YMin - YMax
 	subq.w	#1,d1
 	add.w	d0,d0
-	lea		Scr3D_YTable(pc),a2
-	move.w	(a2,d0.w),d2			;Y Video offset
-	lea		(a0,d2.w),a6			;Y Video address
-	lea		DP_Edges(pc),a4			;Edges
-	adda.w	d0,a4					;Left edge
-	lea		Scr3D_Height*2(a4),a5	;Right edge
+	lea		Scr3D_YTable(pc),a3
+	move.w	(a3,d0.w),d2			;Y Video offset
+	lea		(a0,d2.w),a3			;Y Video address
+	lea		DP_Edges(pc),a1			;Edges
+	adda.w	d0,a1					;Left edge
+	lea		Scr3D_Height*2(a1),a2	;Right edge
 
 ; Draw horizontal lines
 HL_Next:
-	move.w	(a4)+,d2		;X1
-	move.w	(a5)+,d3		;X2
+	move.w	(a1)+,d2		;X1
+	move.w	(a2)+,d3		;X2
 
 	move.w	d2,d6
 	add.w	d6,d6
 	move.w	d3,d7
 	add.w	d7,d7
-	lea		Scr3D_XMask(pc),a3
-	move.w	(a3,d6.w),d6	;Left mask
-	move.w	(a3,d7.w),d7	;Right mask
+	lea		Scr3D_XMask(pc),a4
+	move.w	(a4,d6.w),d6	;Left mask
+	move.w	(a4,d7.w),d7	;Right mask
 	not.w	d7
 
 	lsr.w	#4,d2	;Left offset
@@ -228,14 +228,14 @@ HL_Next:
 	bne.s	HL_NotSameLong
 	eor.w	d6,d7			;Start and end on same offset
 	not.w	d7
-	or.w	d7,(a6,d2.w)	;TODO: Colors
-	lea		Scr3D_LBytes(a6),a6
+	or.w	d7,(a3,d2.w)	;TODO: Colors
+	lea		Scr3D_LBytes(a3),a3
 	dbf		d1,HL_Next
 	rts
 
 HL_NotSameLong:
-	lea		(a6,d2.w),a3
-	or.w	d6,(a3)+
+	lea		(a3,d2.w),a4
+	or.w	d6,(a4)+
 	subq.w	#2,d3
 	cmp.w	d2,d3
 	beq.s	HL_LastWord
@@ -250,19 +250,18 @@ HL_NotSameLong:
 	add.w	d3,d3
 	jmp		(pc,d3.w)	;must have vasm -nowarn=2069
 	REPT	(Scr3D_WBytes/2)-1
-	or.w	d5,(a3)+	;TODO: Colors
+	or.w	d5,(a4)+	;TODO: Colors
 	ENDR
 	ELSE
 HL_NextWord:
-	or.w	d5,(a3)+	;TODO: Colors
+	or.w	d5,(a4)+	;TODO: Colors
 	dbf		d3,HL_NextWord
 	ENDIF
 HL_LastWord:
-	or.w	d7,(a3)+	;TODO: Colors
+	or.w	d7,(a4)+	;TODO: Colors
 
-	lea		Scr3D_LBytes(a6),a6
+	lea		Scr3D_LBytes(a3),a3
 	dbf		d1,HL_Next
-;	move.l	(sp)+,a3
 	rts
 
 DP_Edges:
