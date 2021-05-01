@@ -192,8 +192,9 @@ DP_FillHLines:
 	adda.w	d1,a1					;Left edge start
 	adda.w	d1,a2					;Right edge start
 
-	moveq	#-1,d5		;$ffffffff - fill pattern
-	moveq	#0,d6		;$00000000 - fill pattern
+	moveq	#-1,d5					;$ffffffff - fill pattern
+	moveq	#0,d6					;$00000000 - fill pattern
+	move.w	#Scr3D_LBytes,d7		;Line address increment
 
 ; Draw horizontal lines
 HL_Next:
@@ -201,13 +202,13 @@ HL_Next:
 	move.w	(a2)+,d2		;X2
 
 	lea		Scr3D_XMask(pc),a4
-	move.w	d1,d6
-	add.w	d6,d6
-	move.w	(a4,d6.w),d6	;Left mask
-	move.w	d2,d7
-	add.w	d7,d7
-	move.w	(a4,d7.w),d7	;Right mask
-	not.w	d7
+	move.w	d1,d3
+	add.w	d3,d3
+	move.w	(a4,d3.w),d3	;Left mask
+	move.w	d2,d4
+	add.w	d4,d4
+	move.w	(a4,d4.w),d4	;Right mask
+	not.w	d4
 
 	lsr.w	#4,d1	;Left offset
 	add.w	d1,d1
@@ -217,23 +218,22 @@ HL_Next:
 
 	cmp.w	d1,d2
 	bne.s	HL_NotSameWord
-	eor.w	d6,d7			;Start and end on same offset
-	not.w	d7
-	or.w	d7,(a3,d1.w)	;TODO: Colors
-	lea		Scr3D_LBytes(a3),a3
+	eor.w	d3,d4			;Start and end on same offset
+	not.w	d4
+	or.w	d4,(a3,d1.w)	;TODO: Colors
+	adda.w	d7,a3
 	dbf		d0,HL_Next
 	rts
 
 HL_NotSameWord:
 	lea		(a3,d1.w),a4
-	or.w	d6,(a4)+
+	or.w	d3,(a4)+	;TODO: Colors
 	subq.w	#2,d2
-	cmp.w	d1,d2
-	beq.s	HL_LastWord
 	sub.w	d1,d2
+	beq.s	HL_LastWord
+
 	lsr.w	#1,d2
 	subq.w	#1,d2
-
 	neg.w	d2
 	add.w	#(Scr3D_WBytes/2)-1,d2
 	add.w	d2,d2
@@ -241,10 +241,11 @@ HL_NotSameWord:
 	REPT	(Scr3D_WBytes/2)-1
 	move.w	d5,(a4)+	;TODO: Colors
 	ENDR
-HL_LastWord:
-	or.w	d7,(a4)+	;TODO: Colors
 
-	lea		Scr3D_LBytes(a3),a3
+HL_LastWord:
+	or.w	d4,(a4)+	;TODO: Colors
+
+	adda.w	d7,a3
 	dbf		d0,HL_Next
 	rts
 
