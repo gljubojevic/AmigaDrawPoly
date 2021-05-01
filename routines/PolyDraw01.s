@@ -85,8 +85,8 @@ DO_Lines:
 
 ; Min and Max Y coord of poly
 DO_YMinMax:
-	dc.w	0	;YMin
 	dc.w	0	;YMax
+	dc.w	0	;YMin
 
 ; a0 - Video memory
 DP_FixPoint=8					;interpolation precision
@@ -97,21 +97,21 @@ DrawPoly:
 	lea		DO_YMinMax(pc),a1
 	lea		DO_Lines(pc),a2
 	move.l	(a2)+,d1		;X1,Y1
-	move.w	d1,(a1)+		;Reset YMin
 	move.w	d1,(a1)+		;Reset YMax
+	move.w	d1,(a1)+		;Reset YMin
 	move.l	(a2)+,d2		;X2,Y2 NOTE: Must be at least 1 line to draw
 DP_NextLine:
 	move.w	#$0f00,$dff180
 
-	subq.l	#4,a1			;Pointer to YMin, YMax
-	cmp.w	(a1)+,d2		;Check YMin, YMax
-	bge.s	DP_NotYMin
-	move.w	d2,-2(a1)
-DP_NotYMin:
-	cmp.w	(a1)+,d2
+	subq.l	#4,a1			;Pointer to YMax,YMin
+	cmp.w	(a1)+,d2		;Check YMax,YMin
 	ble.s	DP_NotYMax
 	move.w	d2,-2(a1)
 DP_NotYMax:
+	cmp.w	(a1)+,d2
+	bge.s	DP_NotYMin
+	move.w	d2,-2(a1)
+DP_NotYMin:
 
 	move.l	d2,d5			;save X2,Y2
 	move.w	d2,d7			;Y2
@@ -189,19 +189,22 @@ DP_NoLine:
 	move.l	(a2)+,d2		;X2,Y2 or color
 	bpl.w	DP_NextLine		;not color do next line
 
+; a0 - Video memory
+; a1 - ;YMin, YMax (end)
+; d2 - color as negative number
 DP_FillHLines:
 	move.w	#$00f0,$dff180
 
 	subq.l	#4,a1			;Pointer to YMin, YMax
-	movem.w	(a1)+,d0-d1		;YMin, YMax
-	sub.w	d0,d1			;dy = YMin - YMax
-	subq.w	#1,d1
-	add.w	d0,d0
+	movem.w	(a1)+,d0-d1		;YMax, YMin
+	sub.w	d1,d0			;dy = YMin - YMax
+	subq.w	#1,d0
+	add.w	d1,d1
 	lea		Scr3D_YTable(pc),a3
-	move.w	(a3,d0.w),d2			;Y Video offset
+	move.w	(a3,d1.w),d2			;Y Video offset
 	lea		(a0,d2.w),a3			;Y Video address
 	lea		DP_Edges(pc),a1			;Edges
-	adda.w	d0,a1					;Left edge
+	adda.w	d1,a1					;Left edge
 	lea		Scr3D_Height*2(a1),a2	;Right edge
 
 ; Draw horizontal lines
@@ -209,12 +212,12 @@ HL_Next:
 	move.w	(a1)+,d2		;X1
 	move.w	(a2)+,d3		;X2
 
+	lea		Scr3D_XMask(pc),a4
 	move.w	d2,d6
 	add.w	d6,d6
+	move.w	(a4,d6.w),d6	;Left mask
 	move.w	d3,d7
 	add.w	d7,d7
-	lea		Scr3D_XMask(pc),a4
-	move.w	(a4,d6.w),d6	;Left mask
 	move.w	(a4,d7.w),d7	;Right mask
 	not.w	d7
 
@@ -230,7 +233,7 @@ HL_Next:
 	not.w	d7
 	or.w	d7,(a3,d2.w)	;TODO: Colors
 	lea		Scr3D_LBytes(a3),a3
-	dbf		d1,HL_Next
+	dbf		d0,HL_Next
 	rts
 
 HL_NotSameLong:
@@ -261,7 +264,7 @@ HL_LastWord:
 	or.w	d7,(a4)+	;TODO: Colors
 
 	lea		Scr3D_LBytes(a3),a3
-	dbf		d1,HL_Next
+	dbf		d0,HL_Next
 	rts
 
 DP_Edges:
