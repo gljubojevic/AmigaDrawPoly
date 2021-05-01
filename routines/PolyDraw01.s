@@ -197,7 +197,7 @@ DP_FillHLines:
 
 	subq.l	#4,a1			;Pointer to YMin, YMax
 	movem.w	(a1)+,d0-d1		;YMax, YMin
-	sub.w	d1,d0			;dy = YMin - YMax
+	sub.w	d1,d0			;dy = YMax - YMin
 	subq.w	#1,d0
 	add.w	d1,d1
 	lea		Scr3D_YTable(pc),a3
