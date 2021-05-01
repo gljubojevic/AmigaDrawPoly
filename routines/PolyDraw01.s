@@ -93,34 +93,34 @@ DP_FixPoint=8					;interpolation precision
 DP_FixPoint16=16-DP_FixPoint	;shift to move to upper 16 bit
 ;
 DrawPoly:
-	lea		DP_Edges(pc),a3			;Left edges pointer 
-	lea		Scr3D_Height*2(a3),a4	;Right edges pointer
-	lea		DO_YMinMax(pc),a1
-	lea		DO_Lines(pc),a2
-	move.l	(a2)+,d1		;X1,Y1
-	move.w	d1,(a1)+		;Reset YMax
-	move.w	d1,(a1)+		;Reset YMin
-	move.l	(a2)+,d2		;X2,Y2 NOTE: Must be at least 1 line to draw
+	lea		DP_Edges(pc),a1			;Left edges pointer 
+	lea		Scr3D_Height*2(a1),a2	;Right edges pointer
+	lea		DO_YMinMax(pc),a3
+	lea		DO_Lines(pc),a4
+	move.l	(a4)+,d1		;X1,Y1
+	move.w	d1,(a3)+		;Reset YMax
+	move.w	d1,(a3)+		;Reset YMin
+	move.l	(a4)+,d2		;X2,Y2 NOTE: Must be at least 1 line to draw
 DP_NextLine:
 	move.w	#$0f00,$dff180
 
-	subq.l	#4,a1			;Pointer to YMax,YMin
-	cmp.w	(a1)+,d2		;Check YMax,YMin
+	subq.l	#4,a3			;Pointer to YMax,YMin
+	cmp.w	(a3)+,d2		;Check YMax,YMin
 	ble.s	DP_NotYMax
-	move.w	d2,-2(a1)
+	move.w	d2,-2(a3)
 DP_NotYMax:
-	cmp.w	(a1)+,d2
+	cmp.w	(a3)+,d2
 	bge.s	DP_NotYMin
-	move.w	d2,-2(a1)
+	move.w	d2,-2(a3)
 DP_NotYMin:
 
 	move.l	d2,d5			;save X2,Y2
 	move.w	d2,d7			;Y2
-	move.l	a3,a5			;Left edge pointer
+	move.l	a1,a5			;Left edge pointer
 	sub.w	d1,d7			;dy = Y2-Y1
 	;beq.w	DP_NoLine		;TODO: Remove this from data no need to draw horizontal lines
 	bpl.s	DP_NotRevered	;is it top/down line
-	move.l	a4,a5			;Right edge pointer, line is drawn in different direction
+	move.l	a2,a5			;Right edge pointer, line is drawn in different direction
 	neg.w	d7				;Swap to draw line top to bottom
 	exg		d1,d2			;convert to top/down line X1,Y1<->X2,Y2
 DP_NotRevered:
@@ -152,7 +152,7 @@ DP_NotRevered:
 	ENDR
 
 	move.l	d5,d1
-	move.l	(a2)+,d2		;X2,Y2 or color
+	move.l	(a4)+,d2		;X2,Y2 or color
 	bpl.w	DP_NextLine		;not color do next line
 	bra.w	DP_FillHLines	;done with lines
 
@@ -172,7 +172,7 @@ DP_NotNegativeInc:
 
 DP_NoLine:
 	move.l	d5,d1
-	move.l	(a2)+,d2		;X2,Y2 or color
+	move.l	(a4)+,d2		;X2,Y2 or color
 	bpl.w	DP_NextLine		;not color do next line
 
 ; a0 - Video memory
@@ -181,17 +181,16 @@ DP_NoLine:
 DP_FillHLines:
 	move.w	#$00f0,$dff180
 
-	subq.l	#4,a1			;Pointer to YMin, YMax
-	movem.w	(a1)+,d0-d1		;YMax, YMin
+	subq.l	#4,a3			;Pointer to YMin, YMax
+	movem.w	(a3)+,d0-d1		;YMax, YMin
 	sub.w	d1,d0			;dy = YMax - YMin
 	subq.w	#1,d0
 	add.w	d1,d1
 	lea		Scr3D_YTable(pc),a3
 	move.w	(a3,d1.w),d2			;Y Video offset
 	lea		(a0,d2.w),a3			;Y Video address
-	lea		DP_Edges(pc),a1			;Edges
-	adda.w	d1,a1					;Left edge
-	lea		Scr3D_Height*2(a1),a2	;Right edge
+	adda.w	d1,a1					;Left edge start
+	adda.w	d1,a2					;Right edge start
 
 ; Draw horizontal lines
 HL_Next:
