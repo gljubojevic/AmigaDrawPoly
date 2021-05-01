@@ -93,6 +93,8 @@ DP_FixPoint=8					;interpolation precision
 DP_FixPoint16=16-DP_FixPoint	;shift to move to upper 16 bit
 ;
 DrawPoly:
+	lea		DP_Edges(pc),a3			;Left edges pointer 
+	lea		Scr3D_Height*2(a3),a4	;Right edges pointer
 	lea		DO_YMinMax(pc),a1
 	lea		DO_Lines(pc),a2
 	move.l	(a2)+,d1		;X1,Y1
@@ -114,16 +116,16 @@ DP_NotYMin:
 
 	move.l	d2,d5			;save X2,Y2
 	move.w	d2,d7			;Y2
-	lea		DP_Edges(pc),a3
+	move.l	a3,a5			;Left edge pointer
 	sub.w	d1,d7			;dy = Y2-Y1
 	;beq.w	DP_NoLine		;TODO: Remove this from data no need to draw horizontal lines
 	bpl.s	DP_NotRevered	;is it top/down line
-	lea		Scr3D_Height*2(a3),a3
+	move.l	a4,a5			;Right edge pointer, line is drawn in different direction
 	neg.w	d7				;Swap to draw line top to bottom
 	exg		d1,d2			;convert to top/down line X1,Y1<->X2,Y2
 DP_NotRevered:
 	add.w	d1,d1			;Y1*2
-	lea		(a3,d1.w),a3	;Y1 Edge buffer offset
+	adda.w	d1,a5			;Y1 Edge buffer offset
 	swap	d1				;get X1
 	ext.l	d1
 	swap	d2				;get X2
@@ -145,7 +147,7 @@ DP_NotRevered:
 	add.w	d7,d7
 	jmp		(pc,d7.w)		;must have vasm -nowarn=2069
 	REPT	Scr3D_Height
-	move.w	d1,(a3)+
+	move.w	d1,(a5)+
 	subx.l	d2,d1			; X1 - (dx / dy)
 	ENDR
 
@@ -164,7 +166,7 @@ DP_NotNegativeInc:
 	add.w	d7,d7
 	jmp		(pc,d7.w)		;must have vasm -nowarn=2069
 	REPT	Scr3D_Height
-	move.w	d1,(a3)+
+	move.w	d1,(a5)+
 	addx.l	d2,d1			; X1 + (dx / dy)
 	ENDR
 
