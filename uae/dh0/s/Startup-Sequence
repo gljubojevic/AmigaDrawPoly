@@ -1,4 +1,4 @@
-; define aplication to start
+; define application to start
 SET APP "sys:DrawPoly"
 ; start application
 IF EXISTS $APP
@@ -8,5 +8,3 @@ ELSE
 	ECHO "Missing $APP executable!"
 	ASK "Compile Error?"
 ENDIF
-; Quits the emulator at the end of the program
-UAEquit

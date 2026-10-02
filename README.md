@@ -1,16 +1,6 @@
 # DrawPoly
 Draw triangle using CPU on A500 ECS
 
-Setup project use script to get all tools.
-```shell
-$ ./get_osx_tools.sh
-```
-
-Clean project before commit
-```shell
-$ ./clean.sh
-```
-
 ## References
 Source code examples:
 - https://amigasourcecodepreservation.gitlab.io/amiga-real-time-3d-graphics/

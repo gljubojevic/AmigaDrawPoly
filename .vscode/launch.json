@@ -2,27 +2,15 @@
 	"version": "0.2.0",
 	"configurations": [
 		{
-			"type": "fs-uae",
+			"type": "amiga-assembly",
 			"request": "launch",
 			"name": "FS-UAE A1200 Debug",
 			"stopOnEntry": false,
-			"serverName": "localhost",
-			"serverPort": 6860,
-			"trace": false,
-			"startEmulator": true,
-			"buildWorkspace": true,
-			"windows": {
-				"emulator": "${workspaceFolder}/bin/fs-uae.exe",
-			},
-			"osx": {
-				"emulator": "${workspaceFolder}/bin/fs-uae",
-			},
-			"linux": {
-				"emulator": "${workspaceFolder}/bin/fs-uae",
-			},
-			"emulatorWorkingDir": "${workspaceFolder}/bin",
+            "trace": true,
 			"program": "${workspaceFolder}/uae/dh0/DrawPoly",
-			"options": [
+			"remoteProgram": "SYS:DrawPoly",
+			"emulatorType": "fs-uae",
+			"emulatorArgs": [
 				"--chip_memory=2048",
 				"--hard_drive_0=${workspaceFolder}/uae/dh0",
 				"--joystick_port_1=none",
@@ -34,30 +22,19 @@
 				"--video_sync=off",
 				"--window_width=692",
 				"--window_height=540"
-			]
+			],
+			"preLaunchTask": "amigaassembly: build"
 		},
 		{
-			"type": "fs-uae",
+			"type": "amiga-assembly",
 			"request": "launch",
 			"name": "FS-UAE A500+ Debug",
 			"stopOnEntry": false,
-			"serverName": "localhost",
-			"serverPort": 6860,
-			"trace": false,
-			"startEmulator": true,
-			"buildWorkspace": true,
-			"windows": {
-				"emulator": "${workspaceFolder}/bin/fs-uae.exe",
-			},
-			"osx": {
-				"emulator": "${workspaceFolder}/bin/fs-uae",
-			},
-			"linux": {
-				"emulator": "${workspaceFolder}/bin/fs-uae",
-			},
-			"emulatorWorkingDir": "${workspaceFolder}/bin",
+            "trace": true,
 			"program": "${workspaceFolder}/uae/dh0/DrawPoly",
-			"options": [
+			"remoteProgram": "SYS:DrawPoly",
+			"emulatorType": "fs-uae",
+			"emulatorArgs": [
 				"--chip_memory=1024",
 				"--hard_drive_0=${workspaceFolder}/uae/dh0",
 				"--joystick_port_1=none",
@@ -69,25 +46,18 @@
 				"--video_sync=off",
 				"--window_width=692",
 				"--window_height=540"
-			]
+			],
+			"preLaunchTask": "amigaassembly: build"
 		},
 		{
-			"type": "uae-run",
+			"type": "amiga-assembly",
 			"request": "launch",
 			"name": "FS-UAE A1200 Run",
-			"buildWorkspace": true,
-			"emulator": "${workspaceFolder}/bin/fs-uae",
-			"windows": {
-				"emulator": "${workspaceFolder}/bin/fs-uae.exe",
-			},
-			"osx": {
-				"emulator": "${workspaceFolder}/bin/fs-uae",
-			},
-			"linux": {
-				"emulator": "${workspaceFolder}/bin/fs-uae",
-			},
-			"emulatorWorkingDir": "${workspaceFolder}/bin",
-			"options": [
+			"noDebug": true,
+			"program": "${workspaceFolder}/uae/dh0/DrawPoly",
+			"remoteProgram": "SYS:DrawPoly",
+			"emulatorType": "fs-uae",
+			"emulatorArgs": [
 				"--chip_memory=2048",
 				"--hard_drive_0=${workspaceFolder}/uae/dh0",
 				"--joystick_port_1=none",
@@ -97,25 +67,18 @@
 				"--video_sync=off",
 				"--window_width=692",
 				"--window_height=540"
-			]
+			],
+			"preLaunchTask": "amigaassembly: build"
 		},
 		{
-			"type": "uae-run",
+			"type": "amiga-assembly",
 			"request": "launch",
 			"name": "FS-UAE A500+ Run",
-			"buildWorkspace": true,
-			"emulator": "${workspaceFolder}/bin/fs-uae",
-			"windows": {
-				"emulator": "${workspaceFolder}/bin/fs-uae.exe",
-			},
-			"osx": {
-				"emulator": "${workspaceFolder}/bin/fs-uae",
-			},
-			"linux": {
-				"emulator": "${workspaceFolder}/bin/fs-uae",
-			},
-			"emulatorWorkingDir": "${workspaceFolder}/bin",
-			"options": [
+			"noDebug": true,
+			"program": "${workspaceFolder}/uae/dh0/DrawPoly",
+			"remoteProgram": "SYS:DrawPoly",
+			"emulatorType": "fs-uae",
+			"emulatorArgs": [
 				"--chip_memory=1024",
 				"--hard_drive_0=${workspaceFolder}/uae/dh0",
 				"--joystick_port_1=none",
@@ -125,47 +88,45 @@
 				"--video_sync=off",
 				"--window_width=692",
 				"--window_height=540"
-			]
+			],
+			"preLaunchTask": "amigaassembly: build"
 		},
 		{
-			"type": "winuae",
+			"type": "amiga-assembly",
 			"request": "launch",
-			"name": "WinUAE Debug",
-			"buildWorkspace": true,
-			"stopOnEntry": false,
-			"serverName": "localhost",
-			"serverPort": 2345,
-			"startEmulator": true,
-			"trace": false,
-			"exceptionMask": 8188,
-			"emulatorStartDelay": 1500,
-			"emulator": "${workspaceFolder}/bin/winuae.exe",
-			"emulatorWorkingDir": "${workspaceFolder}/bin",
+			"name": "WinUAE A500 Debug",
+			"stopOnEntry": true,
+            "trace": true,
 			"program": "${workspaceFolder}/uae/dh0/DrawPoly",
-			"options": [
+			"remoteProgram": "SYS:DrawPoly",
+			"emulatorType": "winuae",
+			"emulatorArgs": [
 				"-s",
 				"quickstart=a500,1",
 				"-s",
-				"filesystem=rw,dh0:${workspaceFolder}\\uae\\dh0",
-				"-s",
-				"debugging_trigger=SYS:DrawPoly",
-				"-s",
-				"debugging_features=gdbserver"
-			]
+				"filesystem=rw,dh0:${workspaceFolder}/uae/dh0",
+				"-r",
+				"${workspaceFolder}/uae/rom/Kickstart v2.04 rev 37.175 (1991)(Commodore)(A500+).rom"
+			],
+			"preLaunchTask": "amigaassembly: build"
 		},
 		{
-			"type": "uae-run",
+			"type": "amiga-assembly",
 			"request": "launch",
-			"name": "WinUAE Run",
-			"buildWorkspace": true,
-			"emulator": "${workspaceFolder}/bin/winuae.exe",
-			"emulatorWorkingDir": "${workspaceFolder}/bin",
-			"options": [
+			"name": "WinUAE A500 Run",
+			"noDebug": true,
+			"program": "${workspaceFolder}/uae/dh0/DrawPoly",
+			"remoteProgram": "SYS:DrawPoly",
+			"emulatorType": "winuae",
+			"emulatorArgs": [
 				"-s",
 				"quickstart=a500,1",
 				"-s",
-				"filesystem=rw,dh0:${workspaceFolder}\\uae\\dh0"
-			]
+				"filesystem=rw,dh0:${workspaceFolder}/uae/dh0",
+				"-r",
+				"${workspaceFolder}/uae/rom/Kickstart v2.04 rev 37.175 (1991)(Commodore)(A500+).rom"
+			],
+			"preLaunchTask": "amigaassembly: build"
 		}
 	]
 }
